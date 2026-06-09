@@ -1,0 +1,521 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Barthel Index 評価</title>
+
+  <!-- ファビコン -->
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+
+  <!-- iPhone ホーム画面アイコン -->
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+
+  <!-- PWAっぽく見せる -->
+  <meta name="theme-color" content="#0b6f6a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Barthel">
+
+  <style>    :root {
+      color-scheme: light;
+      --ink: #1f2933;
+      --muted: #667085;
+      --line: #d0d5dd;
+      --soft-line: #eaecf0;
+      --bg: #f8faf9;
+      --panel: #ffffff;
+      --accent: #0b6f6a;
+      --accent-strong: #064f4b;
+      --warn: #8a4b00;
+      --warn-bg: #fff6df;
+      --danger: #b42318;
+      --ok: #087443;
+      --button-text: #ffffff;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Yu Gothic UI", "Meiryo", system-ui, sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: center;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(248, 250, 249, 0.96);
+      backdrop-filter: blur(10px);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 1.25rem;
+      letter-spacing: 0;
+    }
+
+    .score-box {
+      min-width: 132px;
+      padding: 8px 12px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      text-align: right;
+      background: #fff;
+    }
+
+    .score-label {
+      display: block;
+      color: var(--muted);
+      font-size: 0.75rem;
+    }
+
+    #total-score {
+      font-size: 1.7rem;
+      font-weight: 800;
+      line-height: 1.05;
+      color: var(--accent-strong);
+    }
+
+    main {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(300px, 0.8fr);
+      gap: 16px;
+      padding: 16px;
+    }
+
+    section,
+    aside {
+      min-width: 0;
+    }
+
+    .items {
+      display: grid;
+      gap: 10px;
+    }
+
+    fieldset {
+      margin: 0;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+    }
+
+    legend {
+      padding: 0 6px;
+      font-weight: 800;
+    }
+
+    .choices {
+      display: grid;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    label.choice {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 10px;
+      align-items: start;
+      padding: 10px;
+      border: 1px solid var(--soft-line);
+      border-radius: 6px;
+      background: #fff;
+      cursor: pointer;
+    }
+
+    label.choice:has(input:checked) {
+      border-color: var(--accent);
+      box-shadow: inset 0 0 0 1px var(--accent);
+    }
+
+    input[type="radio"] {
+      width: 18px;
+      height: 18px;
+      margin-top: 1px;
+      accent-color: var(--accent);
+    }
+
+    .choice-text {
+      line-height: 1.45;
+    }
+
+    .points {
+      min-width: 38px;
+      color: var(--accent-strong);
+      font-weight: 800;
+      text-align: right;
+    }
+
+    .result-panel {
+      position: sticky;
+      top: 87px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .notice,
+    .result-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+    }
+
+    .notice {
+      padding: 12px;
+      color: var(--warn);
+      background: var(--warn-bg);
+      line-height: 1.6;
+    }
+
+    .result-card {
+      padding: 14px;
+    }
+
+    .result-card h2 {
+      margin: 0 0 10px;
+      font-size: 1rem;
+      letter-spacing: 0;
+    }
+
+    textarea,
+    input[type="text"] {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 10px;
+      font: inherit;
+      color: var(--ink);
+      background: #fff;
+    }
+
+    input[type="text"] {
+      min-height: 42px;
+    }
+
+    textarea {
+      min-height: 220px;
+      resize: vertical;
+      line-height: 1.55;
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    button {
+      min-height: 42px;
+      border: 1px solid var(--accent);
+      border-radius: 6px;
+      padding: 0 12px;
+      font: inherit;
+      font-weight: 800;
+      color: var(--button-text);
+      background: var(--accent);
+      cursor: pointer;
+    }
+
+    button.secondary {
+      color: var(--ink);
+      border-color: var(--line);
+      background: #fff;
+    }
+
+    button:hover {
+      background: var(--accent-strong);
+    }
+
+    button.secondary:hover {
+      background: #f2f4f7;
+    }
+
+    .status {
+      min-height: 24px;
+      margin-top: 8px;
+      font-weight: 700;
+    }
+
+    .status.ok {
+      color: var(--ok);
+    }
+
+    .status.error {
+      color: var(--danger);
+    }
+
+    .compact-row {
+      display: grid;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+
+    .compact-row span {
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+
+    @media (max-width: 760px) {
+      header,
+      main {
+        grid-template-columns: 1fr;
+      }
+
+      .score-box {
+        width: 100%;
+        text-align: left;
+      }
+
+      .result-panel {
+        position: static;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Barthel Index 評価</h1>
+    <div class="score-box" aria-live="polite">
+      <span class="score-label">合計</span>
+      <span id="total-score">0</span><span> / 100</span>
+    </div>
+  </header>
+
+  <main>
+    <section class="items" id="items" aria-label="Barthel Index評価項目"></section>
+
+    <aside class="result-panel">
+      <div class="result-card">
+        <h2>記録用テキスト</h2>
+        <div class="compact-row">
+          <span>患者名・メモ</span>
+          <input type="text" id="patient-note" placeholder="例：山田様 / 初回評価 / 退院前">
+        </div>
+        <textarea id="result-text" readonly></textarea>
+        <div class="actions">
+          <button type="button" id="copy-result">コピー</button>
+          <button type="button" class="secondary" id="reset-form">リセット</button>
+        </div>
+        <div class="status" id="copy-status" role="status" aria-live="polite"></div>
+      </div>
+
+      <div class="notice">評価補助ツールです。最終判断や記録様式への転記は、施設の運用と評価者の確認に合わせてください。</div>
+    </aside>
+  </main>
+
+  <script>
+    const items = [
+      {
+        id: "feeding",
+        label: "食事",
+        options: [
+          [0, "全介助、または食べられない"],
+          [5, "一部介助が必要（切る、塗るなどを含む）"],
+          [10, "自立"]
+        ]
+      },
+      {
+        id: "transfers",
+        label: "移乗",
+        options: [
+          [0, "不可、座位保持も困難"],
+          [5, "大きな介助が必要（1-2人介助）、座位保持は可能"],
+          [10, "軽介助または見守りが必要"],
+          [15, "自立"]
+        ]
+      },
+      {
+        id: "grooming",
+        label: "整容",
+        options: [
+          [0, "介助が必要"],
+          [5, "自立（洗顔、整髪、歯磨き、ひげそり等）"]
+        ]
+      },
+      {
+        id: "toilet",
+        label: "トイレ動作",
+        options: [
+          [0, "全介助"],
+          [5, "一部介助が必要"],
+          [10, "自立（移乗、衣服操作、後始末を含む）"]
+        ]
+      },
+      {
+        id: "bathing",
+        label: "入浴",
+        options: [
+          [0, "介助が必要"],
+          [5, "自立"]
+        ]
+      },
+      {
+        id: "mobility",
+        label: "平地歩行",
+        options: [
+          [0, "移動不可、または50m未満"],
+          [5, "車椅子で自立（50m以上）"],
+          [10, "歩行に介助または見守りが必要（50m以上）"],
+          [15, "自立歩行（補助具使用可、50m以上）"]
+        ]
+      },
+      {
+        id: "stairs",
+        label: "階段",
+        options: [
+          [0, "不可"],
+          [5, "介助または見守りが必要"],
+          [10, "自立"]
+        ]
+      },
+      {
+        id: "dressing",
+        label: "更衣",
+        options: [
+          [0, "全介助"],
+          [5, "一部介助が必要"],
+          [10, "自立（ボタン、ファスナー、靴ひも等を含む）"]
+        ]
+      },
+      {
+        id: "bowels",
+        label: "排便管理",
+        options: [
+          [0, "失禁、または管理に介助が必要"],
+          [5, "時々失禁"],
+          [10, "自立"]
+        ]
+      },
+      {
+        id: "bladder",
+        label: "排尿管理",
+        options: [
+          [0, "失禁、または管理に介助が必要"],
+          [5, "時々失禁"],
+          [10, "自立"]
+        ]
+      }
+    ];
+
+    const form = document.querySelector("#items");
+    const totalScore = document.querySelector("#total-score");
+    const patientNote = document.querySelector("#patient-note");
+    const resultText = document.querySelector("#result-text");
+    const copyButton = document.querySelector("#copy-result");
+    const resetButton = document.querySelector("#reset-form");
+    const status = document.querySelector("#copy-status");
+
+    function renderItems() {
+      form.innerHTML = items.map((item) => {
+        const choices = item.options.map(([points, text], index) => `
+          <label class="choice">
+            <input type="radio" name="${item.id}" value="${points}" data-label="${text}" ${index === 0 ? "checked" : ""}>
+            <span class="choice-text">${text}</span>
+            <span class="points">${points}点</span>
+          </label>
+        `).join("");
+
+        return `
+          <fieldset>
+            <legend>${item.label}</legend>
+            <div class="choices">${choices}</div>
+          </fieldset>
+        `;
+      }).join("");
+    }
+
+    function getSelections() {
+      return items.map((item) => {
+        const checked = document.querySelector(`input[name="${item.id}"]:checked`);
+        return {
+          label: item.label,
+          points: Number(checked.value),
+          text: checked.dataset.label
+        };
+      });
+    }
+
+    function getInterpretation(total) {
+      if (total <= 20) return "全介助レベル";
+      if (total <= 60) return "重度依存レベル";
+      if (total <= 90) return "中等度依存レベル";
+      if (total < 100) return "軽度依存レベル";
+      return "自立";
+    }
+
+    function buildResult() {
+      const selections = getSelections();
+      const total = selections.reduce((sum, item) => sum + item.points, 0);
+      const note = patientNote.value.trim();
+      const lines = [
+        `Barthel Index：${total}/100点（${getInterpretation(total)}）`,
+        note ? `対象・メモ：${note}` : "",
+        "内訳：",
+        ...selections.map((item) => `・${item.label}：${item.points}点（${item.text}）`)
+      ].filter(Boolean);
+
+      totalScore.textContent = total;
+      resultText.value = lines.join("\n");
+    }
+
+    async function copyResult() {
+      const text = resultText.value;
+      status.className = "status";
+      status.textContent = "";
+
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(text);
+        } else {
+          resultText.removeAttribute("readonly");
+          resultText.select();
+          document.execCommand("copy");
+          resultText.setAttribute("readonly", "readonly");
+          window.getSelection().removeAllRanges();
+        }
+        status.classList.add("ok");
+        status.textContent = "コピーしました。";
+      } catch (error) {
+        resultText.removeAttribute("readonly");
+        resultText.focus();
+        resultText.select();
+        resultText.setAttribute("readonly", "readonly");
+        status.classList.add("error");
+        status.textContent = "自動コピーできませんでした。選択済みの本文を手動でコピーしてください。";
+      }
+    }
+
+    function resetForm() {
+      items.forEach((item) => {
+        document.querySelector(`input[name="${item.id}"][value="0"]`).checked = true;
+      });
+      patientNote.value = "";
+      status.className = "status";
+      status.textContent = "";
+      buildResult();
+    }
+
+    renderItems();
+    buildResult();
+
+    form.addEventListener("change", buildResult);
+    patientNote.addEventListener("input", buildResult);
+    copyButton.addEventListener("click", copyResult);
+    resetButton.addEventListener("click", resetForm);
+  </script>
+</body>
+</html>
