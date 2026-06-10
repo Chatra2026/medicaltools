@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>TNM分類 進展度早見ツール v0.3</title>
+  <title>TNM分類 進展度早見ツール v0.4</title>
   <style>
     :root {
       --bg: #f6f7fb;
@@ -15,8 +15,6 @@
       --accent-soft: #dbeafe;
       --warn: #fff7ed;
       --warn-line: #fed7aa;
-      --danger: #fee2e2;
-      --ok: #ecfdf5;
       --shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
       --radius: 16px;
     }
@@ -49,7 +47,7 @@
     }
 
     main {
-      max-width: 880px;
+      max-width: 900px;
       margin: 0 auto;
       padding: 0 14px 30px;
     }
@@ -77,7 +75,7 @@
 
     label {
       display: block;
-      font-weight: 700;
+      font-weight: 800;
       margin-bottom: 6px;
       font-size: 0.92rem;
     }
@@ -97,10 +95,22 @@
       border-color: var(--accent);
     }
 
-    .result {
-      display: grid;
-      gap: 10px;
-      align-items: stretch;
+    .hint-panel {
+      margin-top: 8px;
+      min-height: 54px;
+      border-radius: 12px;
+      background: #f8fafc;
+      border: 1px solid var(--line);
+      padding: 10px;
+      font-size: 0.9rem;
+      color: #334155;
+    }
+
+    .hint-title {
+      font-weight: 800;
+      color: #475569;
+      margin-bottom: 2px;
+      font-size: 0.82rem;
     }
 
     .result-box {
@@ -113,13 +123,13 @@
     .result-title {
       color: var(--muted);
       font-size: 0.88rem;
-      font-weight: 700;
+      font-weight: 800;
       margin-bottom: 4px;
     }
 
     .stage {
       font-size: 1.65rem;
-      font-weight: 800;
+      font-weight: 900;
       letter-spacing: 0.02em;
     }
 
@@ -149,10 +159,11 @@
       background: var(--accent-soft);
       color: #1e40af;
       font-size: 0.85rem;
-      font-weight: 700;
+      font-weight: 800;
     }
 
     .note {
+      margin-top: 12px;
       background: var(--warn);
       border: 1px solid var(--warn-line);
       border-radius: 14px;
@@ -162,14 +173,14 @@
     }
 
     details {
-      margin-top: 10px;
+      margin-top: 12px;
       border-top: 1px dashed var(--line);
       padding-top: 10px;
     }
 
     summary {
       cursor: pointer;
-      font-weight: 800;
+      font-weight: 900;
       color: #1d4ed8;
     }
 
@@ -217,8 +228,8 @@
 </head>
 <body>
   <header>
-    <h1>TNM分類 進展度早見ツール v0.3</h1>
-    <div class="subtitle">大分類 → 部位 → T/N/M選択で進展度を表示</div>
+    <h1>TNM分類 進展度早見ツール v0.4</h1>
+    <div class="subtitle">T/N/Mの横に定義コメントを表示するパイロット版</div>
   </header>
 
   <main>
@@ -229,7 +240,7 @@
           <select id="categorySelect"></select>
         </div>
         <div>
-          <label for="siteSelect">部位</label>
+          <label for="siteSelect">部位・分類</label>
           <select id="siteSelect"></select>
         </div>
       </div>
@@ -238,19 +249,31 @@
         <div>
           <label for="tSelect">T分類</label>
           <select id="tSelect"></select>
+          <div class="hint-panel">
+            <div class="hint-title">Tの説明</div>
+            <div id="tDesc">-</div>
+          </div>
         </div>
         <div>
           <label for="nSelect">N分類</label>
           <select id="nSelect"></select>
+          <div class="hint-panel">
+            <div class="hint-title">Nの説明</div>
+            <div id="nDesc">-</div>
+          </div>
         </div>
         <div>
           <label for="mSelect">M分類</label>
           <select id="mSelect"></select>
+          <div class="hint-panel">
+            <div class="hint-title">Mの説明</div>
+            <div id="mDesc">-</div>
+          </div>
         </div>
       </div>
     </section>
 
-    <section class="card result">
+    <section class="card">
       <div class="result-box">
         <div class="result-title">判定結果</div>
         <div id="stageResult" class="stage neutral">-</div>
@@ -263,7 +286,7 @@
       </div>
 
       <details>
-        <summary>この部位の判定ルールを見る</summary>
+        <summary>この部位の登録ルールを見る</summary>
         <div id="ruleTable"></div>
       </details>
     </section>
@@ -272,7 +295,7 @@
       <label for="quickInput">TNMまとめ入力（試験機能）</label>
       <input id="quickInput" placeholder="例：T3N1M0 / T4a N0 M0 / pT2 pN0 cM0">
       <div class="small" style="margin-top: 6px;">
-        入力すると、T/N/Mのプルダウンへ自動反映します。表記ゆれにはまだ弱いです。
+        入力すると、T/N/Mのプルダウンへ自動反映します。完全な自然文抽出はまだ未対応です。
       </div>
     </section>
 
@@ -282,85 +305,252 @@
   </main>
 
   <script>
-    // v0.3 pilot data
-    // 判定優先順位：
-    // 1. M1 → 遠隔転移
-    // 2. Tx/Nx/Mx または 未選択 → 判定保留
-    // 3. N陽性 → 領域リンパ節転移
-    // 4. Tが隣接臓器浸潤群 → 隣接臓器浸潤
-    // 5. Tis → 上皮内
-    // 6. Tが限局群かつN0M0 → 限局
-    //
-    // 注意：部位ごとの詳細定義は今後PDF照合で拡充する。
     const DATA = [
       {
         category: "消化管",
         site: "胃",
-        t: ["Tx", "Tis", "T1", "T1a", "T1b", "T2", "T3", "T4a", "T4b"],
-        n: ["Nx", "N0", "N1", "N2", "N3"],
-        m: ["Mx", "M0", "M1"],
+        t: [
+          {code:"Tx", desc:"原発腫瘍の評価不能"},
+          {code:"T1a", desc:"粘膜（M）"},
+          {code:"T1b", desc:"粘膜下層（SM）"},
+          {code:"T2", desc:"固有筋層（MP）"},
+          {code:"T3", desc:"漿膜下層（SS）"},
+          {code:"T4a", desc:"漿膜露出（SE）"},
+          {code:"T4b", desc:"他臓器浸潤（SI）"}
+        ],
+        n: [
+          {code:"Nx", desc:"領域リンパ節の評価不能"},
+          {code:"N0", desc:"領域リンパ節転移なし"},
+          {code:"N1", desc:"領域リンパ節転移あり"},
+          {code:"N2", desc:"領域リンパ節転移あり"},
+          {code:"N3", desc:"領域リンパ節転移あり"}
+        ],
+        m: [
+          {code:"Mx", desc:"遠隔転移の評価不能"},
+          {code:"M0", desc:"遠隔転移なし"},
+          {code:"M1", desc:"遠隔転移あり。腹膜播種、洗浄細胞診陽性、肝転移、その他遠隔転移など"}
+        ],
+        rules: {
+          inSitu: [],
+          localized: ["T1a","T1b","T2","T3"],
+          adjacent: ["T4a","T4b"],
+          regionalNodes: ["N1","N2","N3"],
+          distant: ["M1"]
+        }
+      },
+      {
+        category: "消化管",
+        site: "消化管間質腫瘍（GIST）",
+        t: [
+          {code:"Tx", desc:"原発腫瘍の評価不能"},
+          {code:"T1", desc:"最大径 2cm以下"},
+          {code:"T2", desc:"最大径 2cm超〜5cm以下"},
+          {code:"T3", desc:"最大径 5cm超〜10cm以下"},
+          {code:"T4", desc:"最大径 10cm超"}
+        ],
+        n: [
+          {code:"Nx", desc:"領域リンパ節の評価不能"},
+          {code:"N0", desc:"領域リンパ節転移なし"},
+          {code:"N1", desc:"領域リンパ節転移あり"}
+        ],
+        m: [
+          {code:"Mx", desc:"遠隔転移の評価不能"},
+          {code:"M0", desc:"遠隔転移なし"},
+          {code:"M1", desc:"遠隔転移あり"}
+        ],
+        rules: {
+          inSitu: [],
+          localized: ["T1","T2","T3"],
+          adjacent: ["T4"],
+          regionalNodes: ["N1"],
+          distant: ["M1"]
+        }
+      },
+      {
+        category: "消化管",
+        site: "小腸",
+        t: [
+          {code:"Tx", desc:"原発腫瘍の評価不能"},
+          {code:"Tis", desc:"上皮内"},
+          {code:"T1a", desc:"粘膜固有層"},
+          {code:"T1b", desc:"粘膜下層"},
+          {code:"T2", desc:"固有筋層"},
+          {code:"T3", desc:"漿膜下層または筋層周囲組織へ浸潤"},
+          {code:"T4", desc:"臓側腹膜を貫通、または他臓器・構造へ浸潤"}
+        ],
+        n: [
+          {code:"Nx", desc:"領域リンパ節の評価不能"},
+          {code:"N0", desc:"領域リンパ節転移なし"},
+          {code:"N1", desc:"領域リンパ節転移あり"},
+          {code:"N2", desc:"領域リンパ節転移あり"}
+        ],
+        m: [
+          {code:"Mx", desc:"遠隔転移の評価不能"},
+          {code:"M0", desc:"遠隔転移なし"},
+          {code:"M1", desc:"遠隔転移あり"}
+        ],
         rules: {
           inSitu: ["Tis"],
-          localized: ["T1", "T1a", "T1b", "T2", "T3"],
-          adjacent: ["T4a", "T4b"],
-          regionalNodes: ["N1", "N2", "N3"],
+          localized: ["T1a","T1b","T2","T3"],
+          adjacent: ["T4"],
+          regionalNodes: ["N1","N2"],
           distant: ["M1"]
         }
       },
       {
         category: "消化管",
         site: "結腸・直腸",
-        t: ["Tx", "Tis", "T1", "T2", "T3", "T4a", "T4b"],
-        n: ["Nx", "N0", "N1", "N1a", "N1b", "N1c", "N2", "N2a", "N2b"],
-        m: ["Mx", "M0", "M1", "M1a", "M1b", "M1c"],
+        t: [
+          {code:"Tx", desc:"原発腫瘍の評価不能"},
+          {code:"Tis", desc:"上皮内"},
+          {code:"T1", desc:"粘膜下層へ浸潤"},
+          {code:"T2", desc:"固有筋層へ浸潤"},
+          {code:"T3", desc:"漿膜下層または周囲組織へ浸潤"},
+          {code:"T4a", desc:"臓側腹膜表面へ穿通"},
+          {code:"T4b", desc:"他臓器・構造へ直接浸潤または癒着"}
+        ],
+        n: [
+          {code:"Nx", desc:"領域リンパ節の評価不能"},
+          {code:"N0", desc:"領域リンパ節転移なし"},
+          {code:"N1", desc:"領域リンパ節転移あり"},
+          {code:"N1a", desc:"領域リンパ節転移あり"},
+          {code:"N1b", desc:"領域リンパ節転移あり"},
+          {code:"N1c", desc:"領域リンパ節転移相当"},
+          {code:"N2", desc:"領域リンパ節転移あり"},
+          {code:"N2a", desc:"領域リンパ節転移あり"},
+          {code:"N2b", desc:"領域リンパ節転移あり"}
+        ],
+        m: [
+          {code:"Mx", desc:"遠隔転移の評価不能"},
+          {code:"M0", desc:"遠隔転移なし"},
+          {code:"M1", desc:"遠隔転移あり"},
+          {code:"M1a", desc:"遠隔転移あり"},
+          {code:"M1b", desc:"遠隔転移あり"},
+          {code:"M1c", desc:"腹膜転移を含む遠隔転移あり"}
+        ],
         rules: {
           inSitu: ["Tis"],
-          localized: ["T1", "T2", "T3"],
-          adjacent: ["T4a", "T4b"],
-          regionalNodes: ["N1", "N1a", "N1b", "N1c", "N2", "N2a", "N2b"],
-          distant: ["M1", "M1a", "M1b", "M1c"]
+          localized: ["T1","T2","T3"],
+          adjacent: ["T4a","T4b"],
+          regionalNodes: ["N1","N1a","N1b","N1c","N2","N2a","N2b"],
+          distant: ["M1","M1a","M1b","M1c"]
         }
       },
       {
         category: "呼吸器・胸部",
         site: "肺",
-        t: ["Tx", "Tis", "T1", "T1a", "T1b", "T1c", "T2", "T2a", "T2b", "T3", "T4"],
-        n: ["Nx", "N0", "N1", "N2", "N3"],
-        m: ["Mx", "M0", "M1", "M1a", "M1b", "M1c"],
+        t: [
+          {code:"Tx", desc:"原発腫瘍の評価不能"},
+          {code:"Tis", desc:"上皮内"},
+          {code:"T1", desc:"限局群。詳細は原資料確認"},
+          {code:"T1a", desc:"限局群。詳細は原資料確認"},
+          {code:"T1b", desc:"限局群。詳細は原資料確認"},
+          {code:"T1c", desc:"限局群。詳細は原資料確認"},
+          {code:"T2", desc:"限局群。詳細は原資料確認"},
+          {code:"T2a", desc:"限局群。詳細は原資料確認"},
+          {code:"T2b", desc:"限局群。詳細は原資料確認"},
+          {code:"T3", desc:"隣接臓器浸潤群"},
+          {code:"T4", desc:"隣接臓器浸潤群"}
+        ],
+        n: [
+          {code:"Nx", desc:"領域リンパ節の評価不能"},
+          {code:"N0", desc:"領域リンパ節転移なし"},
+          {code:"N1", desc:"領域リンパ節転移あり"},
+          {code:"N2", desc:"領域リンパ節転移あり"},
+          {code:"N3", desc:"領域リンパ節転移あり"}
+        ],
+        m: [
+          {code:"Mx", desc:"遠隔転移の評価不能"},
+          {code:"M0", desc:"遠隔転移なし"},
+          {code:"M1", desc:"遠隔転移あり"},
+          {code:"M1a", desc:"遠隔転移あり"},
+          {code:"M1b", desc:"遠隔転移あり"},
+          {code:"M1c", desc:"遠隔転移あり"}
+        ],
         rules: {
           inSitu: ["Tis"],
-          localized: ["T1", "T1a", "T1b", "T1c", "T2", "T2a", "T2b"],
-          adjacent: ["T3", "T4"],
-          regionalNodes: ["N1", "N2", "N3"],
-          distant: ["M1", "M1a", "M1b", "M1c"]
+          localized: ["T1","T1a","T1b","T1c","T2","T2a","T2b"],
+          adjacent: ["T3","T4"],
+          regionalNodes: ["N1","N2","N3"],
+          distant: ["M1","M1a","M1b","M1c"]
         }
       },
       {
         category: "乳腺",
         site: "乳房",
-        t: ["Tx", "Tis", "T1", "T1mi", "T1a", "T1b", "T1c", "T2", "T3", "T4", "T4a", "T4b", "T4c", "T4d"],
-        n: ["Nx", "N0", "N1", "N2", "N3"],
-        m: ["Mx", "M0", "M1"],
+        t: [
+          {code:"Tx", desc:"原発腫瘍の評価不能"},
+          {code:"Tis", desc:"上皮内癌"},
+          {code:"T1", desc:"限局群。詳細は原資料確認"},
+          {code:"T1mi", desc:"微小浸潤"},
+          {code:"T1a", desc:"限局群。詳細は原資料確認"},
+          {code:"T1b", desc:"限局群。詳細は原資料確認"},
+          {code:"T1c", desc:"限局群。詳細は原資料確認"},
+          {code:"T2", desc:"限局群。詳細は原資料確認"},
+          {code:"T3", desc:"限局群。詳細は原資料確認"},
+          {code:"T4", desc:"隣接臓器浸潤群"},
+          {code:"T4a", desc:"隣接臓器浸潤群"},
+          {code:"T4b", desc:"隣接臓器浸潤群"},
+          {code:"T4c", desc:"隣接臓器浸潤群"},
+          {code:"T4d", desc:"炎症性乳癌"}
+        ],
+        n: [
+          {code:"Nx", desc:"領域リンパ節の評価不能"},
+          {code:"N0", desc:"領域リンパ節転移なし"},
+          {code:"N1", desc:"領域リンパ節転移あり"},
+          {code:"N2", desc:"領域リンパ節転移あり"},
+          {code:"N3", desc:"領域リンパ節転移あり"}
+        ],
+        m: [
+          {code:"Mx", desc:"遠隔転移の評価不能"},
+          {code:"M0", desc:"遠隔転移なし"},
+          {code:"M1", desc:"遠隔転移あり"}
+        ],
         rules: {
           inSitu: ["Tis"],
-          localized: ["T1", "T1mi", "T1a", "T1b", "T1c", "T2", "T3"],
-          adjacent: ["T4", "T4a", "T4b", "T4c", "T4d"],
-          regionalNodes: ["N1", "N2", "N3"],
+          localized: ["T1","T1mi","T1a","T1b","T1c","T2","T3"],
+          adjacent: ["T4","T4a","T4b","T4c","T4d"],
+          regionalNodes: ["N1","N2","N3"],
           distant: ["M1"]
         }
       },
       {
         category: "泌尿器",
         site: "前立腺",
-        t: ["Tx", "T1", "T1a", "T1b", "T1c", "T2", "T2a", "T2b", "T2c", "T3", "T3a", "T3b", "T4"],
-        n: ["Nx", "N0", "N1"],
-        m: ["Mx", "M0", "M1", "M1a", "M1b", "M1c"],
+        t: [
+          {code:"Tx", desc:"原発腫瘍の評価不能"},
+          {code:"T1", desc:"限局群。詳細は原資料確認"},
+          {code:"T1a", desc:"限局群。詳細は原資料確認"},
+          {code:"T1b", desc:"限局群。詳細は原資料確認"},
+          {code:"T1c", desc:"限局群。詳細は原資料確認"},
+          {code:"T2", desc:"限局群。詳細は原資料確認"},
+          {code:"T2a", desc:"限局群。詳細は原資料確認"},
+          {code:"T2b", desc:"限局群。詳細は原資料確認"},
+          {code:"T2c", desc:"限局群。詳細は原資料確認"},
+          {code:"T3", desc:"隣接臓器浸潤群"},
+          {code:"T3a", desc:"隣接臓器浸潤群"},
+          {code:"T3b", desc:"隣接臓器浸潤群"},
+          {code:"T4", desc:"隣接臓器浸潤群"}
+        ],
+        n: [
+          {code:"Nx", desc:"領域リンパ節の評価不能"},
+          {code:"N0", desc:"領域リンパ節転移なし"},
+          {code:"N1", desc:"領域リンパ節転移あり"}
+        ],
+        m: [
+          {code:"Mx", desc:"遠隔転移の評価不能"},
+          {code:"M0", desc:"遠隔転移なし"},
+          {code:"M1", desc:"遠隔転移あり"},
+          {code:"M1a", desc:"遠隔転移あり"},
+          {code:"M1b", desc:"骨転移など"},
+          {code:"M1c", desc:"その他遠隔転移など"}
+        ],
         rules: {
           inSitu: [],
-          localized: ["T1", "T1a", "T1b", "T1c", "T2", "T2a", "T2b", "T2c"],
-          adjacent: ["T3", "T3a", "T3b", "T4"],
+          localized: ["T1","T1a","T1b","T1c","T2","T2a","T2b","T2c"],
+          adjacent: ["T3","T3a","T3b","T4"],
           regionalNodes: ["N1"],
-          distant: ["M1", "M1a", "M1b", "M1c"]
+          distant: ["M1","M1a","M1b","M1c"]
         }
       }
     ];
@@ -370,6 +560,9 @@
     const tSelect = document.getElementById("tSelect");
     const nSelect = document.getElementById("nSelect");
     const mSelect = document.getElementById("mSelect");
+    const tDesc = document.getElementById("tDesc");
+    const nDesc = document.getElementById("nDesc");
+    const mDesc = document.getElementById("mDesc");
     const stageResult = document.getElementById("stageResult");
     const logicResult = document.getElementById("logicResult");
     const selectedBadges = document.getElementById("selectedBadges");
@@ -380,7 +573,11 @@
       return [...new Set(items)];
     }
 
-    function makeOptions(select, values, includeEmpty = false) {
+    function optionLabel(item) {
+      return item.desc ? `${item.code}（${item.desc}）` : item.code;
+    }
+
+    function makeOptions(select, items, includeEmpty = false) {
       select.innerHTML = "";
       if (includeEmpty) {
         const opt = document.createElement("option");
@@ -388,10 +585,10 @@
         opt.textContent = "選択してください";
         select.appendChild(opt);
       }
-      values.forEach(value => {
+      items.forEach(item => {
         const opt = document.createElement("option");
-        opt.value = value;
-        opt.textContent = value;
+        opt.value = item.code;
+        opt.textContent = optionLabel(item);
         select.appendChild(opt);
       });
     }
@@ -400,14 +597,20 @@
       return DATA.find(row => row.category === categorySelect.value && row.site === siteSelect.value);
     }
 
+    function findItem(items, code) {
+      return items.find(item => item.code === code);
+    }
+
     function initCategories() {
       const categories = unique(DATA.map(row => row.category));
-      makeOptions(categorySelect, categories);
+      makeOptions(categorySelect, categories.map(code => ({code, desc:""})));
       updateSites();
     }
 
     function updateSites() {
-      const sites = DATA.filter(row => row.category === categorySelect.value).map(row => row.site);
+      const sites = DATA
+        .filter(row => row.category === categorySelect.value)
+        .map(row => ({code: row.site, desc: ""}));
       makeOptions(siteSelect, sites);
       updateTnmOptions();
     }
@@ -420,10 +623,10 @@
       makeOptions(nSelect, site.n, true);
       makeOptions(mSelect, site.m, true);
 
-      // 実務で多そうな初期値
-      if (site.t.includes("T1")) tSelect.value = "T1";
-      if (site.n.includes("N0")) nSelect.value = "N0";
-      if (site.m.includes("M0")) mSelect.value = "M0";
+      const defaultT = site.t.find(x => x.code === "T1") || site.t.find(x => x.code === "T1a") || site.t[0];
+      if (defaultT) tSelect.value = defaultT.code;
+      if (site.n.some(x => x.code === "N0")) nSelect.value = "N0";
+      if (site.m.some(x => x.code === "M0")) mSelect.value = "M0";
 
       updateResult();
       renderRuleTable();
@@ -434,73 +637,56 @@
     }
 
     function judge(site, t, n, m) {
-      if (!site) {
-        return { stage: "-", tone: "neutral", reason: "部位を選択してください。" };
-      }
+      if (!site) return { stage: "-", tone: "neutral", reason: "部位を選択してください。" };
 
       const r = site.rules;
 
       if (r.distant.includes(m)) {
-        return {
-          stage: "遠隔転移",
-          tone: "danger",
-          reason: `${m} が選択されているため、遠隔転移を優先して判定します。`
-        };
+        return { stage: "遠隔転移", tone: "danger", reason: `${m} が選択されているため、遠隔転移を優先して判定します。` };
       }
 
       if (isUnknown(t) || isUnknown(n) || isUnknown(m)) {
-        return {
-          stage: "判定保留",
-          tone: "warn",
-          reason: "Tx / Nx / Mx / 未選択が含まれるため、進展度は確定できません。"
-        };
+        return { stage: "判定保留", tone: "warn", reason: "Tx / Nx / Mx / 未選択が含まれるため、進展度は確定できません。" };
       }
 
       if (r.regionalNodes.includes(n)) {
-        return {
-          stage: "領域リンパ節転移",
-          tone: "ok",
-          reason: `${n} が領域リンパ節転移群に含まれるため、N分類を優先して判定します。`
-        };
+        return { stage: "領域リンパ節転移", tone: "ok", reason: `${n} が領域リンパ節転移群に含まれるため、N分類を優先して判定します。` };
       }
 
       if (r.adjacent.includes(t)) {
-        return {
-          stage: "隣接臓器浸潤",
-          tone: "ok",
-          reason: `${t} が隣接臓器浸潤群に含まれ、${n}${m} のため、T分類で判定します。`
-        };
+        return { stage: "隣接臓器浸潤", tone: "ok", reason: `${t} が隣接臓器浸潤群に含まれ、${n}${m} のため、T分類で判定します。` };
       }
 
       if (r.inSitu.includes(t)) {
-        return {
-          stage: "上皮内",
-          tone: "ok",
-          reason: `${t}${n}${m} のため、上皮内として判定します。`
-        };
+        return { stage: "上皮内", tone: "ok", reason: `${t}${n}${m} のため、上皮内として判定します。` };
       }
 
       if (r.localized.includes(t) && n === "N0" && m === "M0") {
-        return {
-          stage: "限局",
-          tone: "ok",
-          reason: `${t}${n}${m} のため、限局として判定します。`
-        };
+        return { stage: "限局", tone: "ok", reason: `${t}${n}${m} のため、限局として判定します。` };
       }
 
-      return {
-        stage: "要確認",
-        tone: "warn",
-        reason: "現在のパイロットデータでは判定できない組み合わせです。原資料を確認してください。"
-      };
+      return { stage: "要確認", tone: "warn", reason: "現在のパイロットデータでは判定できない組み合わせです。原資料を確認してください。" };
+    }
+
+    function setDescription(site, t, n, m) {
+      const ti = findItem(site.t, t);
+      const ni = findItem(site.n, n);
+      const mi = findItem(site.m, m);
+      tDesc.textContent = ti ? ti.desc : "-";
+      nDesc.textContent = ni ? ni.desc : "-";
+      mDesc.textContent = mi ? mi.desc : "-";
     }
 
     function updateResult() {
       const site = getCurrentSite();
+      if (!site) return;
+
       const t = tSelect.value;
       const n = nSelect.value;
       const m = mSelect.value;
       const result = judge(site, t, n, m);
+
+      setDescription(site, t, n, m);
 
       stageResult.textContent = result.stage;
       stageResult.className = `stage ${result.tone}`;
@@ -519,33 +705,31 @@
       const site = getCurrentSite();
       if (!site) return;
 
+      function descList(codes, sourceItems) {
+        if (!codes.length) return "該当なし・未設定";
+        return codes.map(code => {
+          const item = findItem(sourceItems, code);
+          return item ? `${item.code}：${item.desc}` : code;
+        }).join("<br>");
+      }
+
       const rows = [
-        ["上皮内", site.rules.inSitu],
-        ["限局", site.rules.localized],
-        ["隣接臓器浸潤", site.rules.adjacent],
-        ["領域リンパ節転移", site.rules.regionalNodes],
-        ["遠隔転移", site.rules.distant]
+        ["上皮内", descList(site.rules.inSitu, site.t)],
+        ["限局", descList(site.rules.localized, site.t)],
+        ["隣接臓器浸潤", descList(site.rules.adjacent, site.t)],
+        ["領域リンパ節転移", descList(site.rules.regionalNodes, site.n)],
+        ["遠隔転移", descList(site.rules.distant, site.m)]
       ];
 
       ruleTable.innerHTML = `
         <table>
-          <thead>
-            <tr>
-              <th>進展度</th>
-              <th>該当するT/N/M</th>
-            </tr>
-          </thead>
+          <thead><tr><th>進展度</th><th>該当するT/N/Mと説明</th></tr></thead>
           <tbody>
-            ${rows.map(([label, vals]) => `
-              <tr>
-                <td>${label}</td>
-                <td>${vals.length ? vals.join(" / ") : "該当なし・未設定"}</td>
-              </tr>
-            `).join("")}
+            ${rows.map(([label, vals]) => `<tr><td>${label}</td><td>${vals}</td></tr>`).join("")}
           </tbody>
         </table>
         <div class="small" style="margin-top: 8px;">
-          ※ v0.3はパイロット版です。部位別の詳細条件は今後拡充します。
+          ※ v0.4はパイロット版です。肺・乳房・前立腺などの詳細説明は今後原資料照合で拡充します。
         </div>
       `;
     }
@@ -564,17 +748,17 @@
       const s = normalizeQuickText(quickInput.value);
       if (!s) return;
 
-      const allT = [...site.t].sort((a, b) => b.length - a.length);
-      const allN = [...site.n].sort((a, b) => b.length - a.length);
-      const allM = [...site.m].sort((a, b) => b.length - a.length);
+      const allT = [...site.t].sort((a, b) => b.code.length - a.code.length);
+      const allN = [...site.n].sort((a, b) => b.code.length - a.code.length);
+      const allM = [...site.m].sort((a, b) => b.code.length - a.code.length);
 
-      const foundT = allT.find(x => s.includes(x.toUpperCase()));
-      const foundN = allN.find(x => s.includes(x.toUpperCase()));
-      const foundM = allM.find(x => s.includes(x.toUpperCase()));
+      const foundT = allT.find(x => s.includes(x.code.toUpperCase()));
+      const foundN = allN.find(x => s.includes(x.code.toUpperCase()));
+      const foundM = allM.find(x => s.includes(x.code.toUpperCase()));
 
-      if (foundT) tSelect.value = foundT;
-      if (foundN) nSelect.value = foundN;
-      if (foundM) mSelect.value = foundM;
+      if (foundT) tSelect.value = foundT.code;
+      if (foundN) nSelect.value = foundN.code;
+      if (foundM) mSelect.value = foundM.code;
 
       updateResult();
     }
