@@ -153,7 +153,7 @@ function rawPlans({drug,daily,days,productIds,route,pumpId,rateMin,rateMax,capac
    const composition=analyze({drug,route,pumpId,rateMin:min,rateMax:max,capacityMl:capacity,lines:[{productId:id,amps,usedMl:amps*p.ml}],salineMl:0,rateMlH:rate,pca});
    if(composition.pca.hours+EPS<days*24)continue;
    if(Math.abs(composition.daily/daily-1)>0.05)composition.warnings.push(`原液では実機刻みによりベース投与量が目標から ${Math.abs((composition.daily/daily-1)*100)}% ずれます。実際の開始量と流速を確認してください。`);
-   rows.push({...composition,targetDaily:daily,targetDays:days,theoreticalRate,selected:{rate,daily:composition.daily,errorPercent:(composition.daily/daily-1)*100},dayDifference:composition.pca.hours-days*24});
+   rows.push({...composition,targetDaily:daily,targetDays:days,theoreticalRate,rawRequiredMl:needed,selected:{rate,daily:composition.daily,errorPercent:(composition.daily/daily-1)*100},dayDifference:composition.pca.hours-days*24});
   }
  }
  return rows.sort((a,b)=>Math.abs(a.selected.errorPercent)-Math.abs(b.selected.errorPercent)||a.ampCount-b.ampCount||a.dayDifference-b.dayDifference).slice(0,5);

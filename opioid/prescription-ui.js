@@ -22,7 +22,7 @@ function productControls(){
 }
 function number(id,{empty=false}={}){const s=$(id).value;if(s==='')return empty?null:undefined;return Number(s);}
 function math(r){
- const lines=[...r.breakdown.map(b=>`${b.product.name}：${fmt(b.amps)} A × ${fmt(b.product.ml)} mL/A = ${fmt(b.amps*b.product.ml)} mL、採取 ${fmt(b.usedMl)} mL × ${fmt(b.product.mg/b.product.ml)} mg/mL = ${fmt(b.mg)} mg、廃棄 ${fmt(b.wasteMl)} mL（${fmt(b.wasteMg)} mg）`),
+ const lines=[...(r.rawRequiredMl!==undefined?[`原液の必要液量 = (${fmt(r.rate)} mL/h × 24 ＋ ${fmt(r.pca.bolusMl)} mL/回 × ${r.pca.usesPerDay} 回/日) × ${fmt(r.targetDays)} 日 = ${fmt(r.rawRequiredMl)} mL`, `必要本数 = ${fmt(r.rawRequiredMl)} mL ÷ ${fmt(r.breakdown[0].product.ml)} mL/A を切り上げ = ${r.ampCount} A`]:[]),...r.breakdown.map(b=>`${b.product.name}：${fmt(b.amps)} A × ${fmt(b.product.ml)} mL/A = ${fmt(b.amps*b.product.ml)} mL、採取 ${fmt(b.usedMl)} mL × ${fmt(b.product.mg/b.product.ml)} mg/mL = ${fmt(b.mg)} mg、廃棄 ${fmt(b.wasteMl)} mL（${fmt(b.wasteMg)} mg）`),
  `薬液 ${fmt(r.drugMl)} mL ＋ 生食 ${fmt(r.salineMl)} mL ＝ 全量 ${fmt(r.volume)} mL`,
  `${fmt(r.totalMg)} mg ÷ ${fmt(r.volume)} mL ＝ ${fmt(r.concentration)} mg/mL`,
  `${fmt(r.concentration)} mg/mL × ${fmt(r.rate)} mL/h ＝ ${fmt(r.hourly)} mg/h`,
