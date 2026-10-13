@@ -1,5 +1,6 @@
 /* Arithmetic preparation candidates, not a prescription or stability recommendation. */
 (function(root){
+const sources={m10:'https://www.pmda.go.jp/PmdaSearch/iyakuDetail/ResultDataSetPDF/400256_8114401A1139_1_08',m200:'https://www.pmda.go.jp/PmdaSearch/iyakuDetail/ResultDataSetPDF/400256_8114401A3107_1_08',oxy:'https://www.pmda.go.jp/PmdaSearch/iyakuDetail/ResultDataSetPDF/343018_8119400A1025_2_07',fent:'https://www.pmda.go.jp/PmdaSearch/iyakuDetail/470034_8219400A1071_1_05',naru:'https://www.pmda.go.jp/PmdaSearch/iyakuDetail/430574_8119401A1020_2_02'};
 const products=[
  {id:'m10',drug:'morphine-inj',name:'モルヒネ塩酸塩注 10mg/1mL（1%）',mg:10,ml:1},
  {id:'m50',drug:'morphine-inj',name:'モルヒネ塩酸塩注 50mg/5mL（1%）',mg:50,ml:5},
@@ -11,7 +12,7 @@ const products=[
  {id:'f05',drug:'fentanyl-inj',name:'フェンタニル 0.5mg/10mL',mg:.5,ml:10},
  {id:'n2',drug:'hydromorphone-inj',name:'ナルベイン 2mg/1mL',mg:2,ml:1},
  {id:'n20',drug:'hydromorphone-inj',name:'ナルベイン 20mg/2mL',mg:20,ml:2}
-];
+].map(p=>({...p,concentration:p.mg/p.ml,source:sources[p.id==='m200'?'m200':p.id.startsWith('m')?'m10':p.id.startsWith('o')?'oxy':p.id.startsWith('f')?'fent':'naru'],checked:'2026-10-13'}));
 const pumps={
  amy:{name:'エイミーPCA CAP-100（mL）',min:.1,max:30,step:.1,bolusMin:.1,bolusMax:50,bolusStep:.1},
  legacy:{name:'CADD-Legacy PCA 6300（mL）',min:.1,max:50,step:.1,bolusMin:.05,bolusMax:9.9,bolusStep:.05},
@@ -47,5 +48,5 @@ function candidates({daily,productId,volume,preferredRate,minHours=0,pumpId,rate
   return Math.abs(Math.log(a.rate/preferredRate))-Math.abs(Math.log(b.rate/preferredRate))||a.amps-b.amps;
  }).slice(0,3);
 }
-const api={products,pumps,neighbors,settings,candidates};if(typeof module!=='undefined')module.exports=api;else root.OpioidPreparation=api;
+const api={products,sources,pumps,neighbors,settings,candidates};if(typeof module!=='undefined')module.exports=api;else root.OpioidPreparation=api;
 })(typeof globalThis!=='undefined'?globalThis:this);

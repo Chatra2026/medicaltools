@@ -4,19 +4,21 @@ $('sw-from').innerHTML=C.drugs.filter(d=>d.factor&&d.id!=='suppository').map(d=>
 for(const [id,drug]of [['sw-morph','morphine-inj'],['sw-oxy','oxycodone-inj'],['sw-fent','fentanyl-inj'],['sw-naru','hydromorphone-inj']])$(id).innerHTML='<option value="">採用規格を選択</option>'+P.products.filter(p=>p.drug===drug).map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
 const fields=['sw-from','sw-dose','sw-volume','sw-target','sw-morph','sw-oxy','sw-fent','sw-naru','sw-route','sw-pump','sw-min','sw-max'];
 function render(){
+ $('sw-copy').disabled=true;$('sw-copy-status').textContent='';
  if(['sw-dose','sw-volume'].some(id=>$(id).value==='')){$('sw-result').innerHTML='<p class="muted">現在の薬剤1日量と調製条件を入力し、採用規格を選択してください。</p>';return;}
  let ome;try{ome=C.equivalent($('sw-from').value,Number($('sw-dose').value));for(const id of ['sw-volume'])if(!Number.isFinite(Number($(id).value))||Number($(id).value)<=0)throw Error('調製条件は0より大きい数値で入力してください。');}catch(e){$('sw-result').innerHTML=`<p class="error">${e.message}</p>`;return;}
- let html=`<div class="ome"><span>NCC表に基づく経口モルヒネ相当量</span><strong>${fmt(ome[0])} <span>mg/日</span></strong></div>`;
+ let rows=[],html=`<div class="ome"><span>NCC表に基づく経口モルヒネ相当量</span><strong>${fmt(ome[0])} <span>mg/日</span></strong></div>`;
  for(const [productId,targetId,startId,name]of [['sw-morph','morphine-inj','sw-morph-start','モルヒネ注'],['sw-oxy','oxycodone-inj','sw-oxy-start','オキシコドン注'],['sw-fent','fentanyl-inj','sw-fent-start','フェンタニル注'],['sw-naru','hydromorphone-inj','sw-naru-start','ナルベイン注']]){
   if(targetId!==$('sw-target').value)continue;
   const eq=C.target(ome,targetId)[0],manual=false;let daily=eq;
   html+=`<section style="margin:24px 0"><h3>${name}</h3><p><b>NCC表の等鎮痛量：${fmt(eq)} mg/日</b>${targetId==='fentanyl-inj'?`（${fmt(eq*1000)} μg/日）`:''}</p>`;
   html+=`<details><summary>等鎮痛量の計算の根拠</summary><p class="muted">${C.calculationSteps($('sw-from').value,Number($('sw-dose').value),null,targetId).join('<br>')}</p></details>`;
   if(targetId==='hydromorphone-inj'){const labelDose=ome[0]/2/8;html+=`<div class="notice">換算基準の違い：NCC表は経口モルヒネの1/25（モルヒネ注の1/12.5）。ナルベイン添付文書はモルヒネ注の1/8を目安としています。モルヒネ注相当量からの添付文書比では ${fmt(labelDose)} mg/日ですが、これは処方推奨ではありません。採用する基準・開始量を医師が確認してください。</div>`;}
+  if(targetId==='fentanyl-inj'&&$('sw-route').value==='sc')html+='<div class="notice">参照したフェンタニル「テルモ」の添文では、癌性疼痛の持続投与は点滴静注と記載されています。皮下注の適応・根拠・指示を個別に確認してください。</div>';
   html+=`<details><summary>この薬剤へ変更するときの留意事項</summary><ul class="muted">${C.clinicalNotes(targetId,$('sw-route').value).map(note=>`<li>${note}</li>`).join('')}</ul></details>`;
   html+=`<p class="muted">${manual?'医師が決定し入力した開始量':'以下はNCC等鎮痛量での計算例'}：${fmt(daily)} mg/日</p>`;
   if(!$(productId).value){html+='<p class="muted">採用規格を選ぶと調製候補を表示します。</p></section>';continue;}
-  let rows;try{rows=P.candidates({daily,productId:$(productId).value,volume:Number($('sw-volume').value),preferredRate:Math.max(.5,Number($('sw-min').value)),minHours:0,pumpId:$('sw-pump').value,rateMin:Number($('sw-min').value),rateMax:Math.min(Number($('sw-max').value),$('sw-route').value==='sc'?1:Infinity)});}catch(e){html+=`<p class="error">${e.message}</p></section>`;continue;}
+  try{rows=P.candidates({daily,productId:$(productId).value,volume:Number($('sw-volume').value),preferredRate:Math.max(.5,Number($('sw-min').value)),minHours:0,pumpId:$('sw-pump').value,rateMin:Number($('sw-min').value),rateMax:Math.min(Number($('sw-max').value),$('sw-route').value==='sc'?1:Infinity)});}catch(e){html+=`<p class="error">${e.message}</p></section>`;continue;}
   const product=P.products.find(p=>p.id===$(productId).value);html+=`<p><b>選択規格：${product.name}</b>（原液 ${fmt(product.mg/product.ml)} mg/mL）</p>`;
   if(!rows.length)html+='<p class="error">この規格・総液量・ポンプ上下限では、設定可能な候補がありません。規格、総液量、実機の上下限を見直してください。</p>';
   for(const [i,r]of rows.entries()){
@@ -29,7 +31,7 @@ function render(){
   html+=`<p class="muted">${C.switchNote($('sw-from').value,targetId)}</p></section>`;
  }
  html+='<p class="muted">候補は整数アンプルと指定全量で探索。指定した実機上下限・0.1mL/h刻みを満たす設定を持つ候補から、1日量のずれが小さい順、次に0.5mL/h（実機下限がそれより高ければ下限）に近い順で最大3件表示。皮下注では上限1mL/hで探索します。CADDはmL単位のPCAモードを前提とし、mg・μgモードの濃度設定や刻みは適用しません。施設の薬剤ライブラリ・ドーズ上下限・ロックアウトは未評価です。配合・安定性・保存期間・臨床上の適否やポンプ実流量精度も評価していません。開始量の自動減量は行いません。</p>';
- $('sw-result').innerHTML=html;
+ $('sw-result').innerHTML=html;$('sw-copy').disabled=!rows||!rows.length;
 }
 function targetControls(){for(const [short,target] of [['morph','morphine-inj'],['oxy','oxycodone-inj'],['fent','fentanyl-inj'],['naru','hydromorphone-inj']])$('sw-controls-'+short).classList.toggle('hidden',target!==$('sw-target').value);}
 $('sw-target').addEventListener('input',targetControls);
