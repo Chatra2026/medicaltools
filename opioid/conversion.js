@@ -65,6 +65,18 @@ function infusion({from,total,volume,rate,rescueVolume,to,targetTotal,targetVolu
  if(Object.values(result).some(x=>x!==null&&(!Number.isFinite(x)||x<0))||concentration===0||targetConcentration===0||daily===0||targetDaily===0||result.targetRate===0)throw Error('計算可能な範囲の数値を入力してください。');
  return result;
 }
-const api={drugs,anchors,release,equivalent,target,patchMatches,switchNote,infusion};
+function clinicalNotes(id,route){
+ const notes={
+ 'morphine-inj':['腎機能障害では活性代謝物などが蓄積し、副作用が強まる可能性があります。他剤からモルヒネへ変更する場合は特に、開始量と観察方法を医師が確認してください。','1%（10mg/mL）と4%（40mg/mL）は濃度が異なります。製剤規格・採取量・希釈後濃度を照合してください。'],
+ 'oxycodone-inj':['CYP3A4等を介する薬物相互作用に注意。特に抗真菌薬・マクロライド系抗菌薬などの追加時は、過鎮静や呼吸抑制などに注意してください。','腎機能・肝機能、併用薬に応じた用量調節が必要です。本計算では自動補正していません。'],
+ 'hydromorphone-inj':['高度の腎機能障害では血中濃度が上昇することがあります。腎・肝機能に応じた開始量の調整を医師が確認してください。','2mg/1mLは2mg/mL、20mg/2mLは10mg/mLで、濃度は5倍異なります。切替時に薬剤名だけでなく規格と流速を照合してください。'],
+ 'fentanyl-inj':['腎排泄される活性代謝物を作らないため腎機能の影響は比較的小さい薬剤ですが、安全な開始量を保証するものではありません。','CYP3A4阻害・誘導薬との相互作用に注意。抗真菌薬・マクロライド系抗菌薬などの追加時は、過鎮静や呼吸抑制などに注意してください。','mgとμgの取り違えに注意：1mg = 1000μg。製剤量・1日量・レスキュー1回量の単位を照合してください。']
+ };
+ const result=[...(notes[id]||[])];
+ if(route==='sc')result.push('持続皮下注は同一部位から一般に1mL/h程度が吸収上限の目安。刺入部の痛み・発赤・硬結や、追加投与時の負担を確認してください。');
+ result.push('切替後は疼痛、レスキュー使用状況、眠気・意識状態、呼吸状態、副作用を観察し、必要に応じ医師が投与量を調整してください。等鎮痛量と実際の開始量は一致するとは限りません。');
+ return result;
+}
+const api={drugs,anchors,release,equivalent,target,patchMatches,switchNote,infusion,clinicalNotes};
 if(typeof module!=='undefined')module.exports=api;else root.OpioidConversion=api;
 })(typeof globalThis!=='undefined'?globalThis:this);

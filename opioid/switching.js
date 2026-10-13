@@ -12,6 +12,7 @@ function render(){
   html+=`<section style="margin:24px 0"><h3>${name}</h3><p><b>NCC表の等鎮痛量：${fmt(eq)} mg/日</b>${targetId==='fentanyl-inj'?`（${fmt(eq*1000)} μg/日）`:''}</p>`;
   if(targetId==='hydromorphone-inj'){const labelDose=ome[0]/2/8;html+=`<div class="notice">換算基準の違い：NCC表は経口モルヒネの1/25（モルヒネ注の1/12.5）。ナルベイン添付文書はモルヒネ注の1/8を目安としています。モルヒネ注相当量からの添付文書比では ${fmt(labelDose)} mg/日ですが、これは処方推奨ではありません。採用する基準・開始量を医師が確認してください。</div>`;}
   if(manual){daily=Number($(startId).value);if(!Number.isFinite(daily)||daily<=0){html+='<p class="error">開始量は0より大きいmg/日で入力してください。</p></section>';continue;}}
+  html+=`<details open><summary>この薬剤へ変更するときの留意事項</summary><ul class="muted">${C.clinicalNotes(targetId,$('sw-route').value).map(note=>`<li>${note}</li>`).join('')}</ul></details>`;
   html+=`<p class="muted">${manual?'医師が決定し入力した開始量':'開始量は未入力。以下はNCC等鎮痛量での計算例'}：${fmt(daily)} mg/日</p>`;
   if(!$(productId).value){html+='<p class="muted">採用規格を選ぶと調製候補を表示します。</p></section>';continue;}
   let rows;try{rows=P.candidates({daily,productId:$(productId).value,volume:Number($('sw-volume').value),preferredRate:Math.max(.5,Number($('sw-min').value)),minHours:Number($('sw-hours').value),pumpId:$('sw-pump').value,rateMin:Number($('sw-min').value),rateMax:Math.min(Number($('sw-max').value),$('sw-route').value==='sc'?1:Infinity)});}catch(e){html+=`<p class="error">${e.message}</p></section>`;continue;}
