@@ -2,10 +2,10 @@
 const C=OpioidConversion,P=OpioidPreparation,$=id=>document.getElementById(id),fmt=n=>new Intl.NumberFormat('ja-JP',{maximumSignificantDigits:6}).format(n);
 $('sw-from').innerHTML=C.drugs.filter(d=>d.factor&&d.id!=='suppository').map(d=>`<option value="${d.id}">${d.name}（${d.brand}）</option>`).join('');
 for(const [id,drug]of [['sw-fent','fentanyl-inj'],['sw-naru','hydromorphone-inj']])$(id).innerHTML='<option value="">採用規格を選択</option>'+P.products.filter(p=>p.drug===drug).map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
-const fields=['sw-from','sw-dose','sw-volume','sw-flow','sw-hours','sw-fent','sw-naru','sw-fent-start','sw-naru-start','sw-route','sw-pump','sw-min','sw-max'];
+const fields=['sw-from','sw-dose','sw-volume','sw-hours','sw-fent','sw-naru','sw-fent-start','sw-naru-start','sw-route','sw-pump','sw-min','sw-max'];
 function render(){
- if(['sw-dose','sw-volume','sw-flow','sw-hours'].some(id=>$(id).value==='')){$('sw-result').innerHTML='<p class="muted">現在の薬剤1日量と調製条件を入力し、採用規格を選択してください。</p>';return;}
- let ome;try{ome=C.equivalent($('sw-from').value,Number($('sw-dose').value));for(const id of ['sw-volume','sw-flow','sw-hours'])if(!Number.isFinite(Number($(id).value))||Number($(id).value)<=0)throw Error('調製条件は0より大きい数値で入力してください。');}catch(e){$('sw-result').innerHTML=`<p class="error">${e.message}</p>`;return;}
+ if(['sw-dose','sw-volume','sw-hours'].some(id=>$(id).value==='')){$('sw-result').innerHTML='<p class="muted">現在の薬剤1日量と調製条件を入力し、採用規格を選択してください。</p>';return;}
+ let ome;try{ome=C.equivalent($('sw-from').value,Number($('sw-dose').value));for(const id of ['sw-volume','sw-hours'])if(!Number.isFinite(Number($(id).value))||Number($(id).value)<=0)throw Error('調製条件は0より大きい数値で入力してください。');}catch(e){$('sw-result').innerHTML=`<p class="error">${e.message}</p>`;return;}
  let html=`<div class="ome"><span>NCC表に基づく経口モルヒネ相当量</span><strong>${fmt(ome[0])} <span>mg/日</span></strong></div>`;
  for(const [productId,targetId,startId,name]of [['sw-fent','fentanyl-inj','sw-fent-start','フェンタニル注'],['sw-naru','hydromorphone-inj','sw-naru-start','ナルベイン注']]){
   const eq=C.target(ome,targetId)[0],manual=$(startId).value!=='';let daily=eq;
@@ -14,7 +14,7 @@ function render(){
   if(manual){daily=Number($(startId).value);if(!Number.isFinite(daily)||daily<=0){html+='<p class="error">開始量は0より大きいmg/日で入力してください。</p></section>';continue;}}
   html+=`<p class="muted">${manual?'医師が決定し入力した開始量':'開始量は未入力。以下はNCC等鎮痛量での計算例'}：${fmt(daily)} mg/日</p>`;
   if(!$(productId).value){html+='<p class="muted">採用規格を選ぶと調製候補を表示します。</p></section>';continue;}
-  let rows;try{rows=P.candidates({daily,productId:$(productId).value,volume:Number($('sw-volume').value),preferredRate:Number($('sw-flow').value),minHours:Number($('sw-hours').value),pumpId:$('sw-pump').value,rateMin:Number($('sw-min').value),rateMax:Math.min(Number($('sw-max').value),$('sw-route').value==='sc'?1:Infinity)});}catch(e){html+=`<p class="error">${e.message}</p></section>`;continue;}
+  let rows;try{rows=P.candidates({daily,productId:$(productId).value,volume:Number($('sw-volume').value),preferredRate:Math.max(.5,Number($('sw-min').value)),minHours:Number($('sw-hours').value),pumpId:$('sw-pump').value,rateMin:Number($('sw-min').value),rateMax:Math.min(Number($('sw-max').value),$('sw-route').value==='sc'?1:Infinity)});}catch(e){html+=`<p class="error">${e.message}</p></section>`;continue;}
   const product=P.products.find(p=>p.id===$(productId).value);html+=`<p><b>選択規格：${product.name}</b>（原液 ${fmt(product.mg/product.ml)} mg/mL）</p>`;
   if(!rows.length)html+='<p class="error">この規格・総液量・ポンプ上下限では、計算対象時間を満たす設定可能な候補がありません。規格、総液量、計算対象時間を見直してください。</p>';
   for(const [i,r]of rows.entries()){
@@ -25,7 +25,7 @@ function render(){
   }
   html+=`<p class="muted">${C.switchNote($('sw-from').value,targetId)}</p></section>`;
  }
- html+='<p class="muted">候補は整数アンプルと指定全量で探索。指定した実機上下限・0.1mL/h刻み・計算対象時間を満たす設定を持つ候補から、1日量のずれが小さい順、次に希望流速に近い順で最大3件表示。皮下注では上限1mL/hで探索します。CADDはmL単位のPCAモードを前提とし、mg・μgモードの濃度設定や刻みは適用しません。施設の薬剤ライブラリ・ドーズ上下限・ロックアウトは未評価です。配合・安定性・保存期間・臨床上の適否やポンプ実流量精度も評価していません。開始量の自動減量は行いません。</p>';
+ html+='<p class="muted">候補は整数アンプルと指定全量で探索。指定した実機上下限・0.1mL/h刻み・計算対象時間を満たす設定を持つ候補から、1日量のずれが小さい順、次に0.5mL/h（実機下限がそれより高ければ下限）に近い順で最大3件表示。皮下注では上限1mL/hで探索します。CADDはmL単位のPCAモードを前提とし、mg・μgモードの濃度設定や刻みは適用しません。施設の薬剤ライブラリ・ドーズ上下限・ロックアウトは未評価です。配合・安定性・保存期間・臨床上の適否やポンプ実流量精度も評価していません。開始量の自動減量は行いません。</p>';
  $('sw-result').innerHTML=html;
 }
 for(const id of fields)$(id).addEventListener('input',()=>{if(id==='sw-pump'){const p=P.pumps[$('sw-pump').value];$('sw-min').value=$('sw-pump').value==='amy'?'0.5':String(p.min);$('sw-max').value=String(p.max);$('sw-pump-note').textContent=p.name+'：ベース0.1mL/h刻み、ドーズ'+p.bolusStep+'mL刻み。表示した上下限を実機で確認してください。';}if(['sw-from','sw-dose'].includes(id)){$('sw-fent-start').value='';$('sw-naru-start').value='';}render();});

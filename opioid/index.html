@@ -39,7 +39,7 @@
 <label for="sw-volume">変更先の全量（薬液＋生食）</label><select id="sw-volume"><option value="50">50 mL全量</option><option value="100" selected>100 mL全量（初期値）</option><option value="250">250 mL全量</option></select><p class="muted">エイミーの現行MPバッグ規格は50・100・300mL。250mLは調製全量として計算し、対応するユニット・充填条件を実物で確認してください。CADDには専用カセット／セットを使用します。</p>
 <label for="sw-pump">ポンプ・設定モード</label><select id="sw-pump"><option value="amy">エイミーPCA CAP-100（mL）</option><option value="legacy">CADD-Legacy PCA 6300（mL）</option><option value="solis">CADD-Solis VIP PCA（mL）</option></select>
 <label for="sw-min">実機の持続流速下限（mL/h）</label><input id="sw-min" type="number" value="0.5" min="0.1" step="0.1"><label for="sw-max">実機の持続流速上限（mL/h）</label><input id="sw-max" type="number" value="30" min="0.1" step="0.1"><p id="sw-pump-note" class="muted">エイミーは0.1mL/h刻み。取説の下限初期値0.5を表示。実機の上下限・ソフト版を確認してください。</p>
-<label for="sw-flow">候補を探す基準の流速（mL/h）</label><input id="sw-flow" type="number" min="0" step="any" value="0.5" inputmode="decimal">
+<p class="muted">薬液量・生食量・流速は、1日量と採用規格から自動計算します。</p>
 <label for="sw-hours">ベース量を確保する計算対象時間（h）</label><input id="sw-hours" type="number" min="0" step="any" value="24" inputmode="decimal"><p class="muted">安定性や使用期限を指定する欄ではありません。レスキュー分は含みません。</p>
 <label for="sw-route">変更先の投与経路</label><select id="sw-route"><option value="iv">持続静注</option><option value="sc">持続皮下注</option></select>
 </section>
@@ -55,7 +55,7 @@
 </section>
 <details><summary>換算基準・切替タイミング・対象外の薬剤について</summary><p class="muted">換算比は出典の1ページ目、切替時刻は4ページ目を基準にしています。結果の各薬剤にある「変更時の開始・注意点」を開くと、入力した薬剤からの切替条件を確認できます。坐剤は換算比に幅があるため範囲表示。貼付剤は出典に記載の規格のみ入力でき、製剤含有量を1日投与量として扱いません。貼付剤への換算は表の基準値と一致する場合だけ規格を表示し、それ以外は放出速度相当値を表示します（規格の補間・丸めはしません）。</p><p class="muted">アブストラル・イーフェンは定時薬や他のレスキュー量から等鎮痛量を決められず、個別の用量調節が必要なため数値換算しません。メサドン、ブプレノルフィン、ペンタゾシンなど、この表に等鎮痛比がない薬剤も対象外です。レスキュータブの注射はmg/回です。持続注射タブでは、薬剤総量と希釈後の総液量から濃度を計算し、ベース流速とレスキュー液量を換算します。ポンプの設定・ロックアウトは自動決定しません。</p></details>
 <footer>出典：<a href="https://www.ncc.go.jp/jp/ncch/clinic/palliative_care/050/kansanhyo_ver6.pdf" target="_blank" rel="noopener">国立がん研究センター中央病院 緩和医療科「オピオイド・鎮静換算表 v6（2025年4月）」</a><br>非公式の参考ツール。入力内容は保存・送信しません。資料確認日：2026年10月13日。切替時刻の出典：同資料4ページ目。</footer>
-</main><script src="conversion.js?v=4"></script><script>
+</main><script src="conversion.js?v=5"></script><script>
 const C=OpioidConversion,$=id=>document.getElementById(id);let mode='base';
 const fmt=n=>new Intl.NumberFormat('ja-JP',{maximumSignificantDigits:6}).format(n);
 const range=a=>Math.abs(a[0]-a[1])<1e-8?fmt(a[0]):fmt(a[0])+' ～ '+fmt(a[1]);
@@ -68,4 +68,4 @@ for(const d of C.drugs.filter(d=>mode==='base'||d.rescue)){const note=mode==='ba
 html+='</tbody></table></div>';if(mode==='base'){html+='<details><summary>このベース量から見たレスキュー量の参考範囲</summary><p class="muted">レスキュー薬そのものの等量換算とは別の計算です。製剤規格への丸めは行いません。</p><table><tbody>';for(const [id,f]of [['morphine',[.1,.2]],['oxycodone',[1/8,1/4]],['hydromorphone',[1/6,1/4]]]){const d=C.drugs.find(x=>x.id===id),a=C.target(ome,id);html+=row(d.name,d.rescue,range([a[0]*f[0],a[1]*f[1]])+' mg/回');}html+='</tbody></table><p class="muted">持続注射のレスキュー：出典の目安は、その持続投与薬の1時間量。濃度・ポンプ設定は別途確認が必要です。</p></details>';}else{html+='<p class="muted">アブストラル・イーフェン：等量換算できません。個別に用量調節する製剤です。</p>';}$('result').innerHTML=html;}
 for(const m of ['base','rescue'])$(m).addEventListener('click',()=>{if(mode===m)return;mode=m;for(const x of ['base','rescue'])$(x).setAttribute('aria-pressed',String(x===m));$('inputtitle').textContent=m==='base'?'ベースを入力':'レスキューを入力';$('resulttitle').textContent=m==='base'?'ベースの換算結果':'レスキューの換算結果';populate();});
 $('drug').addEventListener('change',configure);$('amount').addEventListener('input',render);$('strength').addEventListener('change',render);$('reset').addEventListener('click',()=>{$('amount').value='';render();$('amount').focus();});populate();
-</script><script src="infusion.js?v=4"></script><script src="preparation.js?v=4"></script><script src="switching.js?v=4"></script></body></html>
+</script><script src="infusion.js?v=5"></script><script src="preparation.js?v=5"></script><script src="switching.js?v=5"></script></body></html>

@@ -73,3 +73,5 @@
 - https://usme.com/wp-content/uploads/2022/06/CADD-Solis-Ambulatory-Infusion-Pump.pdf
 
 `node opioid/pump-test.cjs` で、設定刻みの境界、丸め後投与量、全量の質量保存、ポンプ範囲・皮下注流速上限、ドーズ刻みを検証します。
+
+希望流速の入力欄は廃止し、1日量・規格・全量から調製候補と流速を自動計算します。候補の第二順位に使う内部基準は0.5mL/h（実機下限が高い場合は下限）であり、使用者への流速指示ではありません。
