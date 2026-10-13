@@ -39,7 +39,7 @@ console.log('PASS: infusion mass, flow, rescue independence, reference concentra
 context.OpioidPreparation=require('./preparation.js');
 vm.runInContext(fs.readFileSync(__dirname+'/switching.js','utf8'),context);
 el('switching').fire('click');assert.equal(el('sw-panel').hidden,false);assert.equal(el('inf-panel').hidden,true);
-for(const [id,value]of Object.entries({'sw-from':'morphine-inj','sw-dose':'30','sw-volume':'50','sw-flow':'.5','sw-hours':'24','sw-fent':'f05','sw-naru':'n2','sw-route':'iv'}))el(id).value=value;
+for(const [id,value]of Object.entries({'sw-from':'morphine-inj','sw-dose':'30','sw-volume':'50','sw-flow':'.5','sw-hours':'24','sw-fent':'f05','sw-naru':'n2','sw-route':'iv','sw-pump':'amy','sw-min':'.5','sw-max':'30'}))el(id).value=value;
 el('sw-dose').fire('input');assert.match(el('sw-result').innerHTML,/0.6 mg\/日/);assert.match(el('sw-result').innerHTML,/2.4 mg\/日/);assert.match(el('sw-result').innerHTML,/2mg\/1mL/);assert.match(el('sw-result').innerHTML,/3.75 mg\/日/);
 el('sw-fent-start').value='.3';el('sw-fent-start').fire('input');assert.match(el('sw-result').innerHTML,/医師が決定し入力した開始量：0.3/);
 el('sw-dose').value='60';el('sw-dose').fire('input');assert.equal(el('sw-fent-start').value,'');
