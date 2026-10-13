@@ -91,9 +91,14 @@ function plans({drug,daily,volume,days,productIds,route,pumpId,rateMin,rateMax,c
   if(upper<min)return;
   const options=P.settings({rate:theoreticalRate,concentration,daily,volume,pumpId,rateMin:min,rateMax:upper});
   if(!options.length)return;
-  const selected=options.reduce((a,b)=>Math.abs(a.errorPercent)<=Math.abs(b.errorPercent)?a:b);
+  const acceptable=options.filter(s=>{
+   const hours=volume*24/(s.rate*24+pcaBolus*pcaCount);
+   return hours>=Math.max(24,days?days*24:0)-EPS;
+  });
+  if(!acceptable.length)return;
+  const selected=acceptable.reduce((a,b)=>Math.abs(a.errorPercent)<=Math.abs(b.errorPercent)?a:b);
   const composition=analyze({drug,route,pumpId,rateMin:min,rateMax:max,capacityMl:capacity,lines,salineMl:Math.max(0,volume-drugMl),rateMlH:selected.rate,pca});
-  if(days&&composition.pca.hours+EPS<days*24)composition.warnings.push(`設定流速と追加投与では指定 ${days} 日に対し、薬液が約 ${composition.pca.hours/24} 日で不足します。`);
+  if(Math.abs(selected.errorPercent)>5)composition.warnings.push(`ポンプ刻みに合わせたベース投与量は目標から ${Math.abs(selected.errorPercent)}% ずれます。調製・流速を再確認してください。`);
   rows.push({...composition,targetDaily:daily,targetDays:days??null,theoreticalRate,options,selected,dayDifference:days?composition.pca.hours-days*24:null});
  }
  const maxCounts=products.map(p=>Math.min(30,Math.ceil(volume/p.ml),Math.ceil(ideal/p.mg)+2));
@@ -115,7 +120,10 @@ function plans({drug,daily,volume,days,productIds,route,pumpId,rateMin,rateMax,c
    if(full>0&&remain>EPS){const other=Math.ceil(remain/q.mg-EPS),ns=products.map((_,k)=>k===i?full:k===j?other:0),us=products.map((_,k)=>k===i?full*p.ml:k===j?remain/(q.mg/q.ml):0);add(ns,us);}
   }
  }
- rows.sort((a,b)=>Math.abs(a.selected.errorPercent)-Math.abs(b.selected.errorPercent)||Math.abs(a.dayDifference??0)-Math.abs(b.dayDifference??0)||a.discardMg-b.discardMg||a.ampCount-b.ampCount);
+ rows.sort((a,b)=>{
+  if(days){const shortageA=a.dayDifference<-EPS,shortageB=b.dayDifference<-EPS;if(shortageA!==shortageB)return shortageA?1:-1;}
+  return Math.abs(a.selected.errorPercent)-Math.abs(b.selected.errorPercent)||Math.abs(a.dayDifference??0)-Math.abs(b.dayDifference??0)||a.discardMg-b.discardMg||a.ampCount-b.ampCount;
+ });
  const output=rows.slice(0,3);
  // Keep a mixed-strength and a partial-ampoule example visible when feasible.
  for(const predicate of [r=>r.breakdown.length>1,r=>r.discardMl>EPS]){
@@ -125,5 +133,30 @@ function plans({drug,daily,volume,days,productIds,route,pumpId,rateMin,rateMax,c
  for(const row of rows)if(output.length<5&&!output.includes(row))output.push(row);
  return output;
 }
-const api={analyze,plans};if(typeof module!=='undefined')module.exports=api;else root.OpioidPrescription=api;
+function rawPlans({drug,daily,days,productIds,route,pumpId,rateMin,rateMax,capacityMl,pca={mode:'none'}}){
+ num(daily,'目標投与量');num(days,'目標日数');
+ const {pump,min,max,capacity}=device({pumpId,rateMin,rateMax,capacityMl});
+ routeWarnings(drug,route,0);
+ if(!Array.isArray(productIds)||!productIds.length||productIds.length>3||new Set(productIds).size!==productIds.length)throw Error('使用可能なアンプル規格を1～3種類選択してください。');
+ const upper=route==='sc'?Math.min(max,1):max,rows=[];
+ for(const id of productIds){
+  const p=P.products.find(x=>x.id===id);if(!p||p.drug!==drug)throw Error('薬剤とアンプル規格が一致しません。');
+  const theoreticalRate=daily/(24*p.concentration);
+  const options=P.neighbors(theoreticalRate,pump.step,min,upper);
+  for(const rate of options){
+   if(rate<=0)continue;
+   const pcaCount=pca.mode==='none'?0:num(pca.usesPerDay,'24時間当たりの追加投与回数',{zero:true,integer:true});
+   const bolus=pca.mode==='none'?0:num(pca.bolusMl,'PCAの1回液量');
+   const needed=(rate*24+bolus*pcaCount)*days;
+   const amps=Math.ceil(needed/p.ml-EPS);
+   if(amps<1||amps>100000||amps*p.ml>capacity+EPS)continue;
+   const composition=analyze({drug,route,pumpId,rateMin:min,rateMax:max,capacityMl:capacity,lines:[{productId:id,amps,usedMl:amps*p.ml}],salineMl:0,rateMlH:rate,pca});
+   if(composition.pca.hours+EPS<days*24)continue;
+   if(Math.abs(composition.daily/daily-1)>0.05)composition.warnings.push(`原液では実機刻みによりベース投与量が目標から ${Math.abs((composition.daily/daily-1)*100)}% ずれます。実際の開始量と流速を確認してください。`);
+   rows.push({...composition,targetDaily:daily,targetDays:days,theoreticalRate,selected:{rate,daily:composition.daily,errorPercent:(composition.daily/daily-1)*100},dayDifference:composition.pca.hours-days*24});
+  }
+ }
+ return rows.sort((a,b)=>Math.abs(a.selected.errorPercent)-Math.abs(b.selected.errorPercent)||a.ampCount-b.ampCount||a.dayDifference-b.dayDifference).slice(0,5);
+}
+const api={analyze,plans,rawPlans};if(typeof module!=='undefined')module.exports=api;else root.OpioidPrescription=api;
 })(typeof globalThis!=='undefined'?globalThis:this);

@@ -37,6 +37,13 @@ const fraction=R.plans({...parameters,daily:7.5,days:2,productIds:['m10']});
 assert.ok(fraction.some(r=>r.discardMl>.01));assert.ok(fraction.some(r=>Math.abs(r.daily-7.5)>.0001));
 const rescuePlan=R.plans({...parameters,daily:6,days:2,productIds:['m10'],pca:{mode:'expected',bolusMl:.5,usesPerDay:4}});
 assert.ok(rescuePlan.length>0);near(rescuePlan[0].pca.extraMlDay,2);assert.ok(rescuePlan.every(r=>r.pca.hours<r.baseHours));
+// Undiluted 1% morphine at 120 mg/day needs 0.5 mL/h; 8 x 50mg/5mL cover 80 hours.
+const rawPlan=R.rawPlans({...parameters,daily:120,days:3,productIds:['m50']});
+assert.equal(rawPlan[0].ampCount,8);near(rawPlan[0].salineMl,0);near(rawPlan[0].rate,.5);near(rawPlan[0].daily,120);near(rawPlan[0].pca.hours,80);
+assert.deepEqual(R.rawPlans({...parameters,daily:30,days:3,productIds:['m10']}),[]);
+const rawPca=R.rawPlans({...parameters,daily:120,days:3,productIds:['m50'],pca:{mode:'expected',bolusMl:.5,usesPerDay:4}});
+assert.equal(rawPca[0].ampCount,9);near(rawPca[0].pca.hours,45*24/14);
+assert.ok(R.plans({...parameters,daily:30,days:null,productIds:['m10']}).every(r=>r.pca.hours>=24));
 assert.throws(()=>R.plans({...parameters,capacityMl:50}),/容量/);
 assert.throws(()=>R.plans({...parameters,daily:-1}),/目標投与量/);
 assert.throws(()=>R.plans({...parameters,productIds:['o10']}),/一致/);

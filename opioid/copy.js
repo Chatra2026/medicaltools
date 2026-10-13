@@ -1,6 +1,6 @@
 (function(root){
 function extract(id){
- const html=document.getElementById(id).innerHTML.replace(/<br\s*\/?\s*>/gi,'\n').replace(/<\/(?:tr|p|div|details|section|table)>/gi,'\n');
+ const html=document.getElementById(id).innerHTML.replace(/<br\s*\/?\s*>/gi,'\n').replace(/<(?:tr|td|p|summary|strong|small|details|section|table)\b[^>]*>/gi,'\n').replace(/<\/(?:tr|td|p|summary|strong|small|div|details|section|table)>/gi,'\n');
  const el=document.createElement('div');el.innerHTML=html;return el.textContent.replace(/\n{3,}/g,'\n\n').trim();
 }
 async function write(value,statusId){

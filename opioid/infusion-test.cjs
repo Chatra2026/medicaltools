@@ -30,7 +30,7 @@ vm.runInContext(fs.readFileSync(__dirname+'/tabs.js','utf8'),context);
 context.OpioidPreparation=require('./preparation.js');
 vm.runInContext(fs.readFileSync(__dirname+'/switching.js','utf8'),context);
 el('switching').fire('click');assert.equal(el('sw-panel').hidden,false);
-for(const [id,value]of Object.entries({'sw-target':'fentanyl-inj','sw-from':'morphine-inj','sw-dose':'30','sw-volume':'50','sw-flow':'.5','sw-hours':'24','sw-morph':'m50','sw-oxy':'o50','sw-fent':'f05','sw-naru':'n2','sw-route':'iv','sw-pump':'amy','sw-min':'.5','sw-max':'30'}))el(id).value=value;
+for(const [id,value]of Object.entries({'sw-target':'fentanyl-inj','sw-from':'morphine-inj','sw-dose':'30','sw-volume':'50','sw-flow':'.5','sw-hours':'24','sw-morph':'m50','sw-oxy':'o50','sw-fent':'f05','sw-naru':'n2','sw-route':'iv','sw-pump':'amy','sw-min':'.5','sw-max':'30','sw-capacity':'100'}))el(id).value=value;
 el('sw-dose').fire('input');assert.match(el('sw-result').innerHTML,/0.6 mg\/日/);el('sw-target').value='hydromorphone-inj';el('sw-target').fire('input');assert.match(el('sw-result').innerHTML,/2.4 mg\/日/);assert.match(el('sw-result').innerHTML,/2mg\/1mL/);assert.match(el('sw-result').innerHTML,/3.75 mg\/日/);
 el('sw-target').value='morphine-inj';el('sw-target').fire('input');assert.match(el('sw-result').innerHTML,/30 mg\/日/);assert.doesNotMatch(el('sw-result').innerHTML,/フェンタニル注<\/h3>/);
 el('sw-dose').value='-1';el('sw-dose').fire('input');assert.match(el('sw-result').innerHTML,/error/);assert.doesNotMatch(el('sw-result').innerHTML,/<table>/);

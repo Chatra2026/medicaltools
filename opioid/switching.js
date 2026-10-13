@@ -1,13 +1,13 @@
 (function(){
-const C=OpioidConversion,P=OpioidPreparation,$=id=>document.getElementById(id),fmt=n=>new Intl.NumberFormat('ja-JP',{maximumSignificantDigits:6}).format(n);
+const C=OpioidConversion,P=OpioidPreparation,$=id=>document.getElementById(id),fmt=n=>new Intl.NumberFormat('ja-JP',{maximumSignificantDigits:6}).format(Math.abs(n)<1e-9?0:n);
 $('sw-from').innerHTML=C.drugs.filter(d=>d.factor&&d.id!=='suppository').map(d=>`<option value="${d.id}">${d.name}（${d.brand}）</option>`).join('');
 for(const [id,drug]of [['sw-morph','morphine-inj'],['sw-oxy','oxycodone-inj'],['sw-fent','fentanyl-inj'],['sw-naru','hydromorphone-inj']])$(id).innerHTML='<option value="">採用規格を選択</option>'+P.products.filter(p=>p.drug===drug).map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
-const fields=['sw-from','sw-dose','sw-volume','sw-target','sw-morph','sw-oxy','sw-fent','sw-naru','sw-route','sw-pump','sw-min','sw-max'];
+const fields=['sw-from','sw-dose','sw-volume','sw-target','sw-morph','sw-oxy','sw-fent','sw-naru','sw-route','sw-pump','sw-min','sw-max','sw-capacity'];
 function render(){
  $('sw-copy').disabled=true;$('sw-copy-status').textContent='';
  if(['sw-dose','sw-volume'].some(id=>$(id).value==='')){$('sw-result').innerHTML='<p class="muted">現在の薬剤1日量と調製条件を入力し、採用規格を選択してください。</p>';return;}
  let ome;try{ome=C.equivalent($('sw-from').value,Number($('sw-dose').value));for(const id of ['sw-volume'])if(!Number.isFinite(Number($(id).value))||Number($(id).value)<=0)throw Error('調製条件は0より大きい数値で入力してください。');}catch(e){$('sw-result').innerHTML=`<p class="error">${e.message}</p>`;return;}
- let rows=[],html=`<div class="ome"><span>NCC表に基づく経口モルヒネ相当量</span><strong>${fmt(ome[0])} <span>mg/日</span></strong></div>`;
+ if(!Number.isFinite(Number($('sw-capacity').value))||Number($('sw-capacity').value)<=0){$('sw-result').innerHTML='<p class="error">実際の容器容量を0より大きいmLで入力してください。</p>';return;}if(Number($('sw-volume').value)>Number($('sw-capacity').value)){$('sw-result').innerHTML='<p class="error">調製全量が入力した容器容量を超えます。容器と全量を照合してください。</p>';return;}let rows=[],html=`<div class="ome"><span>NCC表に基づく経口モルヒネ相当量</span><strong>${fmt(ome[0])} <span>mg/日</span></strong></div>`;
  for(const [productId,targetId,startId,name]of [['sw-morph','morphine-inj','sw-morph-start','モルヒネ注'],['sw-oxy','oxycodone-inj','sw-oxy-start','オキシコドン注'],['sw-fent','fentanyl-inj','sw-fent-start','フェンタニル注'],['sw-naru','hydromorphone-inj','sw-naru-start','ナルベイン注']]){
   if(targetId!==$('sw-target').value)continue;
   const eq=C.target(ome,targetId)[0],manual=false;let daily=eq;
