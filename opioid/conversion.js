@@ -77,6 +77,18 @@ function clinicalNotes(id,route){
  result.push('切替後は疼痛、レスキュー使用状況、眠気・意識状態、呼吸状態、副作用を観察し、必要に応じ医師が投与量を調整してください。等鎮痛量と実際の開始量は一致するとは限りません。');
  return result;
 }
-const api={drugs,anchors,release,equivalent,target,patchMatches,switchNote,infusion,clinicalNotes};
+function calculationSteps(fromId,amount,strength,toId,unit='mg/日'){
+ const from=drugs.find(d=>d.id===fromId),to=drugs.find(d=>d.id===toId),ome=equivalent(fromId,amount,strength);
+ const fmt=n=>new Intl.NumberFormat('ja-JP',{maximumSignificantDigits:6}).format(n),range=a=>Math.abs(a[0]-a[1])<1e-8?fmt(a[0]):fmt(a[0])+' ～ '+fmt(a[1]);
+ const ratios={morphine:'1',oxycodone:'2/3',hydromorphone:'1/5',tramadol:'5',suppository:'1/2 ～ 2/3','morphine-inj':'1/2','oxycodone-inj':'1/2','fentanyl-inj':'1/100','hydromorphone-inj':'1/25'};
+ const lines=['出典：NCC換算表v6・1ページ。換算比は「当該薬剤量 ÷ 経口モルヒネ相当量」。'];
+ if(from.patch){const i=from.patch.indexOf(strength);lines.push(`${from.name} ${strength}mg/枚は表で経口モルヒネ ${anchors[i]}mg/日に対応。${anchors[i]} × ${fmt(amount)}枚 = ${range(ome)} mg/日。製剤含有量をmg/日として割り算していません。`);}
+ else lines.push(`入力 ${fmt(amount)} ${unit} ÷ 換算比（${ratios[fromId]}） = 経口モルヒネ相当 ${range(ome)} ${unit}。`);
+ if(to.patch){const match=patchMatches(ome,toId);lines.push(match.length?`経口モルヒネ ${range(ome)}mg/日と一致するNCC表の規格：${to.name} ${match[0]}mg/枚 × 1枚。`:`表の規格と一致しないため規格の補間・丸めはせず、放出速度相当 ${range(ome)} × 12.5 ÷ 30 = ${range(ome.map(v=>v*12.5/30))} μg/h を表示。`);}
+ else lines.push(`経口モルヒネ相当 ${range(ome)} × 変更先の換算比（${ratios[toId]}） = ${to.name} ${range(target(ome,toId))} ${unit}。`);
+ if(fromId==='suppository'||toId==='suppository')lines.push('坐剤の換算比に幅があるため、下限・上限を保った区間計算を行っています。');
+ return lines;
+}
+const api={drugs,anchors,release,equivalent,target,patchMatches,switchNote,infusion,clinicalNotes,calculationSteps};
 if(typeof module!=='undefined')module.exports=api;else root.OpioidConversion=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
