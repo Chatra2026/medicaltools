@@ -5,7 +5,7 @@
 </style></head><body><main>
 <header><div class="eyebrow">CLINICAL REFERENCE · NCC v6</div><h1>オピオイド換算</h1><p class="muted">薬剤と量から、経口モルヒネ相当量と各薬剤の等鎮痛量の目安を表示します。</p></header>
 <div class="notice">換算値は処方量ではありません。薬剤変更時の不完全交差耐性、腎・肝機能、全身状態、貼付剤の切替タイミングは計算に含みません。実際の投与量は医師が判断してください。</div>
-<div class="tabs" aria-label="換算モード"><button id="base" aria-pressed="true">ベース（1日量）</button><button id="rescue" aria-pressed="false">レスキュー（1回量）</button><button id="infusion" aria-pressed="false">持続注射</button></div>
+<div class="tabs" aria-label="換算モード"><button id="base" aria-pressed="true">ベース（1日量）</button><button id="rescue" aria-pressed="false">レスキュー（1回量）</button><button id="infusion" aria-pressed="false">持続注射</button><button id="switching" aria-pressed="false">注射へのスイッチ候補</button></div>
 <div id="standard" class="layout"><section class="card"><h2 id="inputtitle">ベースを入力</h2><label for="drug">薬剤・投与経路</label><select id="drug"></select><div id="patchinputs" class="hidden"><label for="strength">1枚の製剤規格（含有量）</label><select id="strength"></select></div><label id="amountlabel" for="amount">投与量（mg/日）</label><input id="amount" type="number" min="0" step="any" inputmode="decimal" placeholder="例：60"><p id="inputnote" class="muted">1回量ではなく、24時間の合計量を入力。</p><button id="reset" style="width:100%;margin-top:16px">入力をクリア</button></section>
 <section class="card" aria-live="polite"><h2 id="resulttitle">ベースの換算結果</h2><div id="result"><p class="muted">薬剤と量を入力すると、ここに結果が表示されます。</p></div></section></div>
 
@@ -29,9 +29,31 @@
 </section></div>
 <section class="card" style="margin-top:20px" aria-live="polite"><h2>持続注射の換算結果</h2><div id="inf-result"></div></section>
 </section>
+
+<section id="sw-panel" class="hidden">
+<div class="notice" style="margin-bottom:20px"><b>調製候補の計算用です。</b> 開始量を空欄にすると、NCC表の等鎮痛量で計算します。医師が決定した開始量を入力すれば、その量で再計算します。規格は院内採用品を選んでください。</div>
+<div class="inf-grid">
+<section class="card"><h2>現在の薬剤・調製条件</h2>
+<label for="sw-from">現在の薬剤・経路</label><select id="sw-from"></select>
+<label for="sw-dose">現在のベース1日量（mg/日）</label><input id="sw-dose" type="number" min="0" step="any" inputmode="decimal" placeholder="例：モルヒネ注なら30">
+<label for="sw-volume">変更先の希釈後総液量（mL）</label><input id="sw-volume" type="number" min="0" step="any" value="50" inputmode="decimal">
+<label for="sw-flow">候補を探す基準の流速（mL/h）</label><input id="sw-flow" type="number" min="0" step="any" value="0.5" inputmode="decimal">
+<label for="sw-hours">ベース量を確保する計算対象時間（h）</label><input id="sw-hours" type="number" min="0" step="any" value="24" inputmode="decimal"><p class="muted">安定性や使用期限を指定する欄ではありません。レスキュー分は含みません。</p>
+<label for="sw-route">変更先の投与経路</label><select id="sw-route"><option value="iv">持続静注</option><option value="sc">持続皮下注</option></select>
+</section>
+<section class="card"><h2>変更先の採用規格・開始量</h2>
+<label for="sw-fent">フェンタニル注の採用規格</label><select id="sw-fent"></select>
+<label for="sw-fent-start">医師が決めたフェンタニル開始量（mg/日・任意）</label><input id="sw-fent-start" type="number" min="0" step="any" inputmode="decimal" placeholder="空欄：NCC等鎮痛量で計算">
+<label for="sw-naru">ナルベイン注の採用規格</label><select id="sw-naru"></select>
+<label for="sw-naru-start">医師が決めたナルベイン開始量（mg/日・任意）</label><input id="sw-naru-start" type="number" min="0" step="any" inputmode="decimal" placeholder="空欄：NCC等鎮痛量で計算">
+<p class="muted">現在の薬剤や1日量を変更すると、開始量の入力を消去します。自動減量や添付文書比の自動適用は行いません。</p><button id="sw-reset" style="width:100%;margin-top:20px">1日量・開始量をクリア</button>
+</section></div>
+<section class="card" style="margin-top:20px" aria-live="polite"><h2>フェンタニル・ナルベインの調製候補</h2><div id="sw-result"></div></section>
+<p class="muted">規格の出典：<a href="https://www.pmda.go.jp/PmdaSearch/iyakuDetail/430574_8119401A1020_2_02" target="_blank" rel="noopener">ナルベイン電子添文（2026年7月）</a> ／ <a href="https://www.pmda.go.jp/PmdaSearch/iyakuDetail/470034_8219400A1071_1_05" target="_blank" rel="noopener">フェンタニル「テルモ」電子添文（2025年8月）</a>。フェンタニルの規格は同製品を参照し、製品・添加剤の違いは候補生成では評価しません。</p>
+</section>
 <details><summary>換算基準・切替タイミング・対象外の薬剤について</summary><p class="muted">換算比は出典の1ページ目、切替時刻は4ページ目を基準にしています。結果の各薬剤にある「変更時の開始・注意点」を開くと、入力した薬剤からの切替条件を確認できます。坐剤は換算比に幅があるため範囲表示。貼付剤は出典に記載の規格のみ入力でき、製剤含有量を1日投与量として扱いません。貼付剤への換算は表の基準値と一致する場合だけ規格を表示し、それ以外は放出速度相当値を表示します（規格の補間・丸めはしません）。</p><p class="muted">アブストラル・イーフェンは定時薬や他のレスキュー量から等鎮痛量を決められず、個別の用量調節が必要なため数値換算しません。メサドン、ブプレノルフィン、ペンタゾシンなど、この表に等鎮痛比がない薬剤も対象外です。レスキュータブの注射はmg/回です。持続注射タブでは、薬剤総量と希釈後の総液量から濃度を計算し、ベース流速とレスキュー液量を換算します。ポンプの設定・ロックアウトは自動決定しません。</p></details>
 <footer>出典：<a href="https://www.ncc.go.jp/jp/ncch/clinic/palliative_care/050/kansanhyo_ver6.pdf" target="_blank" rel="noopener">国立がん研究センター中央病院 緩和医療科「オピオイド・鎮静換算表 v6（2025年4月）」</a><br>非公式の参考ツール。入力内容は保存・送信しません。資料確認日：2026年10月13日。切替時刻の出典：同資料4ページ目。</footer>
-</main><script src="conversion.js?v=2"></script><script>
+</main><script src="conversion.js?v=3"></script><script>
 const C=OpioidConversion,$=id=>document.getElementById(id);let mode='base';
 const fmt=n=>new Intl.NumberFormat('ja-JP',{maximumSignificantDigits:6}).format(n);
 const range=a=>Math.abs(a[0]-a[1])<1e-8?fmt(a[0]):fmt(a[0])+' ～ '+fmt(a[1]);
@@ -44,4 +66,4 @@ for(const d of C.drugs.filter(d=>mode==='base'||d.rescue)){const note=mode==='ba
 html+='</tbody></table></div>';if(mode==='base'){html+='<details><summary>このベース量から見たレスキュー量の参考範囲</summary><p class="muted">レスキュー薬そのものの等量換算とは別の計算です。製剤規格への丸めは行いません。</p><table><tbody>';for(const [id,f]of [['morphine',[.1,.2]],['oxycodone',[1/8,1/4]],['hydromorphone',[1/6,1/4]]]){const d=C.drugs.find(x=>x.id===id),a=C.target(ome,id);html+=row(d.name,d.rescue,range([a[0]*f[0],a[1]*f[1]])+' mg/回');}html+='</tbody></table><p class="muted">持続注射のレスキュー：出典の目安は、その持続投与薬の1時間量。濃度・ポンプ設定は別途確認が必要です。</p></details>';}else{html+='<p class="muted">アブストラル・イーフェン：等量換算できません。個別に用量調節する製剤です。</p>';}$('result').innerHTML=html;}
 for(const m of ['base','rescue'])$(m).addEventListener('click',()=>{if(mode===m)return;mode=m;for(const x of ['base','rescue'])$(x).setAttribute('aria-pressed',String(x===m));$('inputtitle').textContent=m==='base'?'ベースを入力':'レスキューを入力';$('resulttitle').textContent=m==='base'?'ベースの換算結果':'レスキューの換算結果';populate();});
 $('drug').addEventListener('change',configure);$('amount').addEventListener('input',render);$('strength').addEventListener('change',render);$('reset').addEventListener('click',()=>{$('amount').value='';render();$('amount').focus();});populate();
-</script><script src="infusion.js?v=2"></script></body></html>
+</script><script src="infusion.js?v=3"></script><script src="preparation.js?v=3"></script><script src="switching.js?v=3"></script></body></html>

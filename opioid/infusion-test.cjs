@@ -36,3 +36,14 @@ el('inf-volume').value='0';el('inf-volume').fire('input');assert.match(el('inf-r
 el('inf-volume').value='100';el('inf-rate').value='2';el('inf-route').value='sc';el('inf-rate').fire('input');assert.match(el('inf-result').innerHTML,/1 mL\/hを超え/);
 el('inf-reset').fire('click');assert.equal(el('inf-rate').value,'');assert.doesNotMatch(el('inf-result').innerHTML,/<table>/);
 console.log('PASS: infusion mass, flow, rescue independence, reference concentrations, validation, UI tab transitions, stale-result clearing, SC warning.');
+context.OpioidPreparation=require('./preparation.js');
+vm.runInContext(fs.readFileSync(__dirname+'/switching.js','utf8'),context);
+el('switching').fire('click');assert.equal(el('sw-panel').hidden,false);assert.equal(el('inf-panel').hidden,true);
+for(const [id,value]of Object.entries({'sw-from':'morphine-inj','sw-dose':'30','sw-volume':'50','sw-flow':'.5','sw-hours':'24','sw-fent':'f05','sw-naru':'n2','sw-route':'iv'}))el(id).value=value;
+el('sw-dose').fire('input');assert.match(el('sw-result').innerHTML,/0.6 mg\/日/);assert.match(el('sw-result').innerHTML,/2.4 mg\/日/);assert.match(el('sw-result').innerHTML,/2mg\/1mL/);assert.match(el('sw-result').innerHTML,/3.75 mg\/日/);
+el('sw-fent-start').value='.3';el('sw-fent-start').fire('input');assert.match(el('sw-result').innerHTML,/医師が決定し入力した開始量：0.3/);
+el('sw-dose').value='60';el('sw-dose').fire('input');assert.equal(el('sw-fent-start').value,'');
+el('sw-dose').value='-1';el('sw-dose').fire('input');assert.match(el('sw-result').innerHTML,/error/);assert.doesNotMatch(el('sw-result').innerHTML,/<table>/);
+el('infusion').fire('click');assert.equal(el('sw-panel').hidden,true);assert.equal(el('inf-panel').hidden,false);
+el('switching').fire('click');el('base').fire('click');assert.equal(el('sw-panel').hidden,true);assert.equal(el('standard').hidden,false);
+console.log('PASS: switching candidate UI, clinical-start override and clearing, label comparison, four-tab navigation.');

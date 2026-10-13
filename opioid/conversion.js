@@ -17,7 +17,7 @@ const drugs=[
  {id:'wond',name:'ワンデュロ（1日）',brand:'ワンデュロ',patch:[0.84,1.7,3.4,5]}
 ];
 const anchors=[30,60,120,180],release=[12.5,25,50,75];
-function switchNote(fromId,toId){
+function switchNoteBase(fromId,toId){
  const from=drugs.find(d=>d.id===fromId),to=drugs.find(d=>d.id===toId);
  if(!from||!to)throw Error('不明な薬剤です。');
  if(from.id===to.id)return '同じ薬剤・経路です。切替開始時刻の計算は行いません。';
@@ -31,6 +31,12 @@ function switchNote(fromId,toId){
   return 'トラマドールから貼付剤への具体的な切替時刻は、この資料では指定されていません。適応とオピオイド耐性も含め個別に確認してください。';
  }
  return '経口・坐剤・注射の吸収や投与間隔は異なります。この組合せの「何時間後に開始」は出典に指定がなく、元の製剤の最終投与時刻・作用持続時間・疼痛状態に応じて医師が決定してください。等鎮痛量をそのまま初回処方量にしないでください。';
+}
+function switchNote(fromId,toId){
+ const from=drugs.find(d=>d.id===fromId);
+ if(from?.patch&&toId==='hydromorphone-inj')return 'ナルベイン添付文書では、フェンタニル貼付剤剥離後の血中濃度半減に17時間以上かかるため、剥離直後の使用を避け、適切に時間をあけ低用量から開始することを考慮するとされています。17時間を一律の開始時刻として扱いません。NCC表の一般的な剥離12時間後／疼痛不良時の即時半量という記載とは異なるため、個別に確認してください。';
+ const note=switchNoteBase(fromId,toId);
+ return toId==='hydromorphone-inj'&&fromId!==toId?note+' 換算比にも差があります：NCC表はモルヒネ注の1/12.5、ナルベイン添付文書はモルヒネ注の1/8を目安としています。本アプリの等鎮痛量はNCC表基準です。':note;
 }
 function equivalent(id,amount,strength){
  const d=drugs.find(x=>x.id===id);

@@ -5,10 +5,11 @@ const fmt=n=>new Intl.NumberFormat('ja-JP',{maximumSignificantDigits:6}).format(
 const fields=['inf-from','inf-total','inf-volume','inf-rate','inf-rescue','inf-to','inf-target-total','inf-target-volume'];
 const options=C.drugs.filter(d=>d.id.endsWith('-inj')).map(d=>`<option value="${d.id}">${d.name}（${d.brand}）</option>`).join('');
 $('inf-from').innerHTML=options;$('inf-to').innerHTML=options;
-function show(){const isInf=$('infusion').getAttribute('aria-pressed')==='true';$('standard').classList.toggle('hidden',isInf);$('inf-panel').classList.toggle('hidden',!isInf);}
-$('infusion').addEventListener('click',()=>{for(const id of ['base','rescue','infusion'])$(id).setAttribute('aria-pressed',String(id==='infusion'));show();});
-for(const id of ['base','rescue'])$(id).addEventListener('click',()=>{for(const tab of ['base','rescue','infusion'])$(tab).setAttribute('aria-pressed',String(tab===id));show();});
-function drugNote(id){return $(id).value==='hydromorphone-inj'?'ナルベインは2mg/2mLと20mg/2mLなど製剤濃度が異なります。総量はmgで確認。':$(id).value==='fentanyl-inj'?'フェンタニルも薬剤総量はmgで入力。1000 μg = 1 mg。':'製剤から取った薬剤の合計量（mg）を入力してください。';}
+function show(){const isInf=$('infusion').getAttribute('aria-pressed')==='true',isSwitch=$('switching').getAttribute('aria-pressed')==='true';$('standard').classList.toggle('hidden',isInf||isSwitch);$('inf-panel').classList.toggle('hidden',!isInf);$('sw-panel').classList.toggle('hidden',!isSwitch);}
+$('infusion').addEventListener('click',()=>{for(const id of ['base','rescue','infusion','switching'])$(id).setAttribute('aria-pressed',String(id==='infusion'));show();});
+$ ('switching').addEventListener('click',()=>{for(const id of ['base','rescue','infusion','switching'])$(id).setAttribute('aria-pressed',String(id==='switching'));show();});
+for(const id of ['base','rescue'])$(id).addEventListener('click',()=>{for(const tab of ['base','rescue','infusion','switching'])$(tab).setAttribute('aria-pressed',String(tab===id));show();});
+function drugNote(id){return $(id).value==='hydromorphone-inj'?'ナルベインは2mg/1mLと20mg/2mLなど製剤濃度が異なります。総量はmgで確認。':$(id).value==='fentanyl-inj'?'フェンタニルも薬剤総量はmgで入力。1000 μg = 1 mg。':'製剤から取った薬剤の合計量（mg）を入力してください。';}
 function render(){
  $('inf-source-note').textContent=drugNote('inf-from');$('inf-target-note').textContent=drugNote('inf-to');
  const required=fields.filter(id=>id!=='inf-rescue');
