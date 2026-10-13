@@ -42,6 +42,23 @@ function equivalent(id,amount,strength){
 }
 function target(ome,id){const d=drugs.find(x=>x.id===id);if(!d?.factor)throw Error('数値換算できない薬剤です。');return [ome[0]*d.factor[0],ome[1]*d.factor[1]];}
 function patchMatches(ome,id){const d=drugs.find(x=>x.id===id);return d.patch.filter((s,i)=>Math.abs(ome[0]-anchors[i])<1e-8&&Math.abs(ome[1]-anchors[i])<1e-8);}
-const api={drugs,anchors,release,equivalent,target,patchMatches,switchNote};
+function infusion({from,total,volume,rate,rescueVolume,to,targetTotal,targetVolume}){
+ const injection=id=>{if(!drugs.some(d=>d.id===id&&d.id.endsWith('-inj')))throw Error('注射剤を選択してください。');};
+ injection(from);injection(to);
+ const positive=n=>Number.isFinite(n)&&n>0;
+ if(![total,volume,rate,targetTotal,targetVolume].every(positive))throw Error('薬剤総量・総液量・流速は0より大きい数値で入力してください。');
+ if(rescueVolume!==null&&(!Number.isFinite(rescueVolume)||rescueVolume<0))throw Error('レスキュー量は0以上の数値で入力してください。');
+ const concentration=total/volume,targetConcentration=targetTotal/targetVolume;
+ const daily=concentration*rate*24,ome=equivalent(from,daily),targetDaily=target(ome,to)[0];
+ const result={concentration,targetConcentration,daily,ome:ome[0],targetDaily,targetRate:targetDaily/24/targetConcentration,
+  rescueMg:rescueVolume===null?null:concentration*rescueVolume,
+  targetRescueMg:rescueVolume===null?null:concentration*rescueVolume/drugs.find(d=>d.id===from).factor[0]*drugs.find(d=>d.id===to).factor[0],
+  referenceRescueMg:targetDaily/24};
+ result.targetRescueVolume=result.targetRescueMg===null?null:result.targetRescueMg/targetConcentration;
+ result.referenceRescueVolume=result.referenceRescueMg/targetConcentration;
+ if(Object.values(result).some(x=>x!==null&&(!Number.isFinite(x)||x<0))||concentration===0||targetConcentration===0||daily===0||targetDaily===0||result.targetRate===0)throw Error('計算可能な範囲の数値を入力してください。');
+ return result;
+}
+const api={drugs,anchors,release,equivalent,target,patchMatches,switchNote,infusion};
 if(typeof module!=='undefined')module.exports=api;else root.OpioidConversion=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
