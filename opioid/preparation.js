@@ -1,6 +1,11 @@
 /* Arithmetic preparation candidates, not a prescription or stability recommendation. */
 (function(root){
 const products=[
+ {id:'m10',drug:'morphine-inj',name:'モルヒネ塩酸塩注 10mg/1mL（1%）',mg:10,ml:1},
+ {id:'m50',drug:'morphine-inj',name:'モルヒネ塩酸塩注 50mg/5mL（1%）',mg:50,ml:5},
+ {id:'m200',drug:'morphine-inj',name:'モルヒネ塩酸塩注 200mg/5mL（4%）',mg:200,ml:5},
+ {id:'o10',drug:'oxycodone-inj',name:'オキファスト 10mg/1mL',mg:10,ml:1},
+ {id:'o50',drug:'oxycodone-inj',name:'オキファスト 50mg/5mL',mg:50,ml:5},
  {id:'f01',drug:'fentanyl-inj',name:'フェンタニル 0.1mg/2mL',mg:.1,ml:2},
  {id:'f025',drug:'fentanyl-inj',name:'フェンタニル 0.25mg/5mL',mg:.25,ml:5},
  {id:'f05',drug:'fentanyl-inj',name:'フェンタニル 0.5mg/10mL',mg:.5,ml:10},

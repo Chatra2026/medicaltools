@@ -1,13 +1,13 @@
 (function(){
 const C=OpioidConversion,P=OpioidPreparation,$=id=>document.getElementById(id),fmt=n=>new Intl.NumberFormat('ja-JP',{maximumSignificantDigits:6}).format(n);
 $('sw-from').innerHTML=C.drugs.filter(d=>d.factor&&d.id!=='suppository').map(d=>`<option value="${d.id}">${d.name}（${d.brand}）</option>`).join('');
-for(const [id,drug]of [['sw-fent','fentanyl-inj'],['sw-naru','hydromorphone-inj']])$(id).innerHTML='<option value="">採用規格を選択</option>'+P.products.filter(p=>p.drug===drug).map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
-const fields=['sw-from','sw-dose','sw-volume','sw-hours','sw-fent','sw-naru','sw-fent-start','sw-naru-start','sw-route','sw-pump','sw-min','sw-max'];
+for(const [id,drug]of [['sw-morph','morphine-inj'],['sw-oxy','oxycodone-inj'],['sw-fent','fentanyl-inj'],['sw-naru','hydromorphone-inj']])$(id).innerHTML='<option value="">採用規格を選択</option>'+P.products.filter(p=>p.drug===drug).map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+const fields=['sw-from','sw-dose','sw-volume','sw-hours','sw-morph','sw-oxy','sw-fent','sw-naru','sw-morph-start','sw-oxy-start','sw-fent-start','sw-naru-start','sw-route','sw-pump','sw-min','sw-max'];
 function render(){
  if(['sw-dose','sw-volume','sw-hours'].some(id=>$(id).value==='')){$('sw-result').innerHTML='<p class="muted">現在の薬剤1日量と調製条件を入力し、採用規格を選択してください。</p>';return;}
  let ome;try{ome=C.equivalent($('sw-from').value,Number($('sw-dose').value));for(const id of ['sw-volume','sw-hours'])if(!Number.isFinite(Number($(id).value))||Number($(id).value)<=0)throw Error('調製条件は0より大きい数値で入力してください。');}catch(e){$('sw-result').innerHTML=`<p class="error">${e.message}</p>`;return;}
  let html=`<div class="ome"><span>NCC表に基づく経口モルヒネ相当量</span><strong>${fmt(ome[0])} <span>mg/日</span></strong></div>`;
- for(const [productId,targetId,startId,name]of [['sw-fent','fentanyl-inj','sw-fent-start','フェンタニル注'],['sw-naru','hydromorphone-inj','sw-naru-start','ナルベイン注']]){
+ for(const [productId,targetId,startId,name]of [['sw-morph','morphine-inj','sw-morph-start','モルヒネ注'],['sw-oxy','oxycodone-inj','sw-oxy-start','オキシコドン注'],['sw-fent','fentanyl-inj','sw-fent-start','フェンタニル注'],['sw-naru','hydromorphone-inj','sw-naru-start','ナルベイン注']]){
   const eq=C.target(ome,targetId)[0],manual=$(startId).value!=='';let daily=eq;
   html+=`<section style="margin:24px 0"><h3>${name}</h3><p><b>NCC表の等鎮痛量：${fmt(eq)} mg/日</b>${targetId==='fentanyl-inj'?`（${fmt(eq*1000)} μg/日）`:''}</p>`;
   if(targetId==='hydromorphone-inj'){const labelDose=ome[0]/2/8;html+=`<div class="notice">換算基準の違い：NCC表は経口モルヒネの1/25（モルヒネ注の1/12.5）。ナルベイン添付文書はモルヒネ注の1/8を目安としています。モルヒネ注相当量からの添付文書比では ${fmt(labelDose)} mg/日ですが、これは処方推奨ではありません。採用する基準・開始量を医師が確認してください。</div>`;}
@@ -28,6 +28,6 @@ function render(){
  html+='<p class="muted">候補は整数アンプルと指定全量で探索。指定した実機上下限・0.1mL/h刻み・計算対象時間を満たす設定を持つ候補から、1日量のずれが小さい順、次に0.5mL/h（実機下限がそれより高ければ下限）に近い順で最大3件表示。皮下注では上限1mL/hで探索します。CADDはmL単位のPCAモードを前提とし、mg・μgモードの濃度設定や刻みは適用しません。施設の薬剤ライブラリ・ドーズ上下限・ロックアウトは未評価です。配合・安定性・保存期間・臨床上の適否やポンプ実流量精度も評価していません。開始量の自動減量は行いません。</p>';
  $('sw-result').innerHTML=html;
 }
-for(const id of fields)$(id).addEventListener('input',()=>{if(id==='sw-pump'){const p=P.pumps[$('sw-pump').value];$('sw-min').value=$('sw-pump').value==='amy'?'0.5':String(p.min);$('sw-max').value=String(p.max);$('sw-pump-note').textContent=p.name+'：ベース0.1mL/h刻み、ドーズ'+p.bolusStep+'mL刻み。表示した上下限を実機で確認してください。';}if(['sw-from','sw-dose'].includes(id)){$('sw-fent-start').value='';$('sw-naru-start').value='';}render();});
-$('sw-reset').addEventListener('click',()=>{for(const id of ['sw-dose','sw-fent-start','sw-naru-start'])$(id).value='';render();});render();
+for(const id of fields)$(id).addEventListener('input',()=>{if(id==='sw-pump'){const p=P.pumps[$('sw-pump').value];$('sw-min').value=$('sw-pump').value==='amy'?'0.5':String(p.min);$('sw-max').value=String(p.max);$('sw-pump-note').textContent=p.name+'：ベース0.1mL/h刻み、ドーズ'+p.bolusStep+'mL刻み。表示した上下限を実機で確認してください。';}if(['sw-from','sw-dose'].includes(id)){for(const start of ['sw-morph-start','sw-oxy-start','sw-fent-start','sw-naru-start'])$(start).value='';}render();});
+$('sw-reset').addEventListener('click',()=>{for(const id of ['sw-dose','sw-morph-start','sw-oxy-start','sw-fent-start','sw-naru-start'])$(id).value='';render();});render();
 })();
