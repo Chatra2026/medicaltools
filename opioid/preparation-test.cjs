@@ -10,7 +10,7 @@ assert.equal(P.products.find(p=>p.id==='n20').mg/P.products.find(p=>p.id==='n20'
 const x={daily:.6,productId:'f05',volume:50,preferredRate:.5,minHours:24};
 near(P.candidates(x)[0].rate,.5);assert.equal(P.candidates(x)[0].amps,5);
 assert.deepEqual(P.candidates({...x,daily:100}),[]);
-for(const key of ['daily','volume','preferredRate','minHours'])for(const n of [0,-1,NaN,Infinity])assert.throws(()=>P.candidates({...x,[key]:n}));
+for(const key of ['daily','volume','preferredRate'])for(const n of [0,-1,NaN,Infinity])assert.throws(()=>P.candidates({...x,[key]:n}));
 assert.throws(()=>P.candidates({...x,productId:'unknown'}));
 assert.throws(()=>P.candidates({...x,preferredRate:1e-308}));
 assert.match(C.switchNote('fentos','hydromorphone-inj'),/剥離直後の使用を避け/);

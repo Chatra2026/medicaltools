@@ -27,9 +27,9 @@ function settings({rate,concentration,daily,volume,pumpId,rateMin,rateMax,minHou
  return neighbors(rate,p.step,min,max).map(r=>({rate:r,daily:concentration*r*24,errorPercent:(concentration*r*24/daily-1)*100,hours:volume/r,
   rescue:neighbors(r,p.bolusStep,p.bolusMin,p.bolusMax).map(v=>({volume:v,mg:v*concentration,errorPercent:(v/r-1)*100}))})).filter(s=>s.hours>=minHours-1e-8);
 }
-function candidates({daily,productId,volume,preferredRate,minHours,pumpId,rateMin,rateMax}){
+function candidates({daily,productId,volume,preferredRate,minHours=0,pumpId,rateMin,rateMax}){
  const p=products.find(p=>p.id===productId);
- if(!p||![daily,volume,preferredRate,minHours].every(n=>Number.isFinite(n)&&n>0))throw Error('量・総液量・目標流速・必要時間は0より大きい数値で入力してください。');
+ if(!p||(![daily,volume,preferredRate].every(n=>Number.isFinite(n)&&n>0)||!Number.isFinite(minHours)||minHours<0))throw Error('量・総液量・目標流速・必要時間は0より大きい数値で入力してください。');
  const max=Math.floor((volume+1e-9)/p.ml),minimum=Math.max(1,Math.ceil(daily*minHours/24/p.mg-1e-9));
  if(!Number.isSafeInteger(max)||max>100000||!Number.isSafeInteger(minimum))throw Error('計算可能な範囲で入力してください。');
  const desired=daily*volume/(24*preferredRate*p.mg),counts=new Set([minimum,max]);
